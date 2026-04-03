@@ -1,0 +1,2 @@
+"""STS autoplay research scaffold."""
+

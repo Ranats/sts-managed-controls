@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sts-autoplayer-lab"
+version = "0.1.0"
+description = "Autoplay and build-analysis scaffold for Slay the Spire style runs."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.2.0",
+    "opencv-python-headless>=4.10.0",
+    "Pillow>=11.0.0",
+    "PyAutoGUI>=0.9.54",
+    "PyDirectInput>=1.0.4",
+]
+
+[project.scripts]
+sts-lab = "sts_bot.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

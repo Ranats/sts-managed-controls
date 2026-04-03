@@ -1,0 +1,1810 @@
+{
+  "window_title": "Slay the Spire 2",
+  "reference_width": 1517,
+  "reference_height": 944,
+  "capture_backend": "visible_region",
+  "input_backend_name": "auto",
+  "window_message_delivery": "send",
+  "window_message_activation": "none",
+  "legacy_input_backend": "combined",
+  "target_process_name": "SlayTheSpire2.exe",
+  "target_title_regex": "Slay the Spire 2",
+  "target_class_name": null,
+  "dry_run": false,
+  "verbose_diagnostics": false,
+  "allow_foreground_fallback": false,
+  "match_threshold": 0.94,
+  "action_delay_ms": 700,
+  "battle_cancel_key": "down",
+  "startup_sequence_labels": [
+    "Single Play",
+    "Select profile 1",
+    "Standard run",
+    "Select Ironclad",
+    "Take default whale option",
+    "Advance whale dialog",
+    "Close relic popup"
+  ],
+  "scene_input_backends": {
+    "menu": "gamepad",
+    "profile_select": "gamepad",
+    "mode_select": "gamepad",
+    "character_select": "gamepad",
+    "neow_choice": "gamepad",
+    "neow_dialog": "window_messages",
+    "confirm_popup": "window_messages",
+    "relic_popup": "gamepad",
+    "card_grid": "gamepad",
+    "battle": "gamepad",
+    "map": "gamepad",
+    "event": "gamepad",
+    "reward_menu": "window_messages",
+    "reward_cards": "window_messages",
+    "reward_relic": "gamepad",
+    "reward_potion": "gamepad",
+    "reward_gold_only": "window_messages",
+    "rest": "gamepad",
+    "boss_relic": "gamepad",
+    "continue": "gamepad",
+    "game_over": "window_messages"
+  },
+  "static_character": "Ironclad",
+  "memory_read": {
+    "enabled": true,
+    "module": "sts2.dll",
+    "refresh_ms": 1200,
+    "fields": []
+  },
+  "anchors": [
+    {
+      "name": "menu_anchor",
+      "screen": "menu",
+      "template_path": "templates\\menu_anchor.png",
+      "region": [
+        320,
+        150,
+        620,
+        320
+      ],
+      "threshold": 0.72,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "menu_anchor_live_v2",
+      "screen": "menu",
+      "template_path": "templates\\menu_anchor_live_v2.png",
+      "region": [
+        430,
+        130,
+        760,
+        330
+      ],
+      "threshold": 0.6,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "profile_select_anchor_live",
+      "screen": "profile_select",
+      "template_path": "templates\\profile_select_anchor_live.png",
+      "region": [
+        230,
+        150,
+        530,
+        210
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "mode_select_anchor",
+      "screen": "mode_select",
+      "template_path": "templates\\mode_select_anchor.png",
+      "region": [
+        180,
+        120,
+        360,
+        430
+      ],
+      "threshold": 0.5,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "mode_select_anchor_live_v2",
+      "screen": "mode_select",
+      "template_path": "templates\\mode_select_anchor_live_v2.png",
+      "region": [
+        250,
+        120,
+        940,
+        440
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "mode_select_anchor_live_v3",
+      "screen": "mode_select",
+      "template_path": "templates\\mode_select_anchor_live_v3.png",
+      "region": [
+        314,
+        133,
+        827,
+        577
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "mode_select_anchor_live_small",
+      "screen": "mode_select",
+      "template_path": "templates\\mode_select_anchor_live_small.png",
+      "region": [
+        118,
+        60,
+        123,
+        92
+      ],
+      "threshold": 0.78,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "character_select_anchor",
+      "screen": "character_select",
+      "template_path": "templates\\character_select_anchor.png",
+      "region": [
+        150,
+        230,
+        420,
+        260
+      ],
+      "threshold": 0.5,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "character_select_anchor_live_v2",
+      "screen": "character_select",
+      "template_path": "templates\\character_select_anchor_live_v2.png",
+      "region": [
+        140,
+        140,
+        620,
+        400
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "character_select_anchor_live_v3",
+      "screen": "character_select",
+      "template_path": "templates\\character_select_anchor_live_v3.png",
+      "region": [
+        180,
+        210,
+        760,
+        300
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "character_select_anchor_live_v3",
+      "screen": "character_select",
+      "template_path": "templates\\character_select_anchor_live_v3.png",
+      "region": [
+        215,
+        235,
+        620,
+        285
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "neow_choice_anchor",
+      "screen": "neow_choice",
+      "template_path": "templates\\neow_choice_anchor.png",
+      "region": [
+        250,
+        440,
+        720,
+        260
+      ],
+      "threshold": 0.55,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "neow_choice_anchor_live_v2",
+      "screen": "neow_choice",
+      "template_path": "templates\\neow_choice_anchor_live_v2.png",
+      "region": [
+        300,
+        430,
+        880,
+        330
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "neow_choice_anchor_live_v3",
+      "screen": "neow_choice",
+      "template_path": "templates\\neow_choice_anchor_live_v3.png",
+      "region": [
+        389,
+        483,
+        830,
+        289
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "neow_dialog_anchor",
+      "screen": "neow_dialog",
+      "template_path": "templates\\neow_dialog_anchor.png",
+      "region": [
+        270,
+        620,
+        720,
+        130
+      ],
+      "threshold": 0.55,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "relic_popup_anchor",
+      "screen": "relic_popup",
+      "template_path": "templates\\relic_popup_anchor.png",
+      "region": [
+        380,
+        120,
+        600,
+        580
+      ],
+      "threshold": 0.55,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "card_grid_anchor",
+      "screen": "card_grid",
+      "template_path": "templates\\card_grid_anchor.png",
+      "region": [
+        60,
+        30,
+        860,
+        500
+      ],
+      "threshold": 0.55,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "card_grid_anchor_live_v2",
+      "screen": "card_grid",
+      "template_path": "templates\\card_grid_anchor_live_v2.png",
+      "region": [
+        520,
+        680,
+        400,
+        85
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "confirm_popup_anchor",
+      "screen": "confirm_popup",
+      "template_path": "templates\\confirm_popup_anchor.png",
+      "region": [
+        952,
+        395,
+        90,
+        69
+      ],
+      "threshold": 0.55,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "map_anchor",
+      "screen": "map",
+      "template_path": "templates\\map_anchor.png",
+      "region": [
+        1480,
+        64,
+        340,
+        120
+      ],
+      "threshold": 0.94,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "map_anchor_live",
+      "screen": "map",
+      "template_path": "templates\\map_anchor_live.png",
+      "region": [
+        206,
+        272,
+        104,
+        96
+      ],
+      "threshold": 0.7,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "map_anchor_live_v2",
+      "screen": "map",
+      "template_path": "templates\\map_anchor_live_v2.png",
+      "region": [
+        850,
+        155,
+        170,
+        230
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "map_anchor_live_v4",
+      "screen": "map",
+      "template_path": "templates\\map_anchor_live_v4.png",
+      "region": [
+        962,
+        182,
+        176,
+        311
+      ],
+      "threshold": 0.75,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "map_anchor_live_v5",
+      "screen": "map",
+      "template_path": "templates\\map_anchor_live_v5.png",
+      "region": [
+        1233,
+        196,
+        253,
+        290
+      ],
+      "threshold": 0.72,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "map_anchor_live_v6",
+      "screen": "map",
+      "template_path": "templates\\map_anchor_live_v6.png",
+      "region": [
+        1160,
+        205,
+        305,
+        350
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "map_anchor_live_v7",
+      "screen": "map",
+      "template_path": "templates\\map_anchor_live_v7.png",
+      "region": [
+        1110,
+        205,
+        250,
+        315
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "map_anchor_live_v8",
+      "screen": "map",
+      "template_path": "templates\\map_anchor_live_v8.png",
+      "region": [
+        1110,
+        205,
+        250,
+        315
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "map_anchor_live_v9",
+      "screen": "map",
+      "template_path": "templates\\map_anchor_live_v9.png",
+      "region": [
+        360,
+        280,
+        570,
+        280
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "map_anchor_live_v10",
+      "screen": "map",
+      "template_path": "templates\\map_anchor_live_v10.png",
+      "region": [
+        1140,
+        205,
+        255,
+        305
+      ],
+      "threshold": 0.6,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "continue_anchor_live",
+      "screen": "continue",
+      "template_path": "templates\\continue_anchor_live.png",
+      "region": [
+        857,
+        405,
+        135,
+        72
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "continue_anchor_live_v2",
+      "screen": "continue",
+      "template_path": "templates\\continue_anchor_live_v2.png",
+      "region": [
+        250,
+        570,
+        430,
+        95
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "continue_anchor_shop_intro",
+      "screen": "continue",
+      "template_path": "templates\\continue_anchor_shop_intro.png",
+      "region": [
+        1180,
+        500,
+        305,
+        195
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "continue_anchor_shop_intro_v2",
+      "screen": "continue",
+      "template_path": "templates\\continue_anchor_shop_intro_v2.png",
+      "region": [
+        1160,
+        720,
+        225,
+        180
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "event_jungle_anchor_live",
+      "screen": "event",
+      "template_path": "templates\\event_jungle_anchor_live.png",
+      "region": [
+        685,
+        115,
+        265,
+        120
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "event_jungle_followup_anchor_live",
+      "screen": "event",
+      "template_path": "templates\\event_jungle_followup_anchor_live.png",
+      "region": [
+        690,
+        115,
+        275,
+        160
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "battle_anchor",
+      "screen": "battle",
+      "template_path": "templates\\battle_anchor.png",
+      "region": [
+        1170,
+        700,
+        260,
+        170
+      ],
+      "threshold": 0.7,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "battle_anchor_live",
+      "screen": "battle",
+      "template_path": "templates\\battle_anchor_live.png",
+      "region": [
+        841,
+        451,
+        194,
+        91
+      ],
+      "threshold": 0.7,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "battle_anchor_live_v2",
+      "screen": "battle",
+      "template_path": "templates\\battle_anchor_live_v2.png",
+      "region": [
+        1570,
+        760,
+        295,
+        245
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "battle_anchor_live_v3",
+      "screen": "battle",
+      "template_path": "templates\\battle_anchor_live_v3.png",
+      "region": [
+        1610,
+        845,
+        265,
+        185
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "battle_anchor_live_v4",
+      "screen": "battle",
+      "template_path": "templates\\battle_anchor_live_v4.png",
+      "region": [
+        1120,
+        560,
+        250,
+        170
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "reward_menu_anchor",
+      "screen": "reward_menu",
+      "template_path": "templates\\reward_menu_anchor.png",
+      "region": [
+        416,
+        257,
+        212,
+        47
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "reward_menu_single_anchor",
+      "screen": "reward_menu",
+      "template_path": "templates\\reward_menu_single_anchor.png",
+      "region": [
+        416,
+        206,
+        212,
+        43
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "reward_anchor",
+      "screen": "reward_cards",
+      "template_path": "templates\\reward_anchor.png",
+      "region": [
+        400,
+        110,
+        700,
+        220
+      ],
+      "threshold": 0.8,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "reward_gold_only_anchor_live",
+      "screen": "reward_gold_only",
+      "template_path": "templates\\reward_gold_only_anchor_live.png",
+      "region": [
+        416,
+        206,
+        212,
+        43
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "rest_anchor",
+      "screen": "rest",
+      "template_path": "templates\\rest_anchor.png",
+      "region": [
+        720,
+        180,
+        500,
+        140
+      ],
+      "threshold": 0.94,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "shop_anchor",
+      "screen": "shop",
+      "template_path": "templates\\shop_anchor.png",
+      "region": [
+        1420,
+        130,
+        360,
+        120
+      ],
+      "threshold": 0.94,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "shop_anchor_live_v2",
+      "screen": "shop",
+      "template_path": "templates\\shop_anchor_live_v2.png",
+      "region": [
+        930,
+        420,
+        520,
+        430
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "shop_leave_anchor_live",
+      "screen": "shop",
+      "template_path": "templates\\shop_leave_anchor_live.png",
+      "region": [
+        20,
+        680,
+        150,
+        190
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "shop_anchor_live_v3",
+      "screen": "shop",
+      "template_path": "templates\\shop_anchor_live_v3.png",
+      "region": [
+        900,
+        390,
+        560,
+        470
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "shop_leave_anchor_live_v2",
+      "screen": "shop",
+      "template_path": "templates\\shop_leave_anchor_live_v2.png",
+      "region": [
+        15,
+        675,
+        155,
+        215
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "game_over_anchor",
+      "screen": "game_over",
+      "template_path": "templates\\game_over_anchor.png",
+      "region": [
+        630,
+        140,
+        660,
+        180
+      ],
+      "threshold": 0.94,
+      "scale_template": true,
+      "scale_region": true
+    },
+    {
+      "name": "game_over_anchor_live_v2",
+      "screen": "game_over",
+      "template_path": "templates\\game_over_anchor_live_v2.png",
+      "region": [
+        610,
+        150,
+        340,
+        180
+      ],
+      "threshold": 0.82,
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "name": "game_over_main_menu_anchor_live",
+      "screen": "game_over",
+      "template_path": "templates\\game_over_main_menu_anchor_live.png",
+      "region": [
+        551,
+        623,
+        243,
+        86
+      ],
+      "threshold": 0.8,
+      "scale_template": false,
+      "scale_region": false
+    }
+  ],
+  "text_regions": [
+    {
+      "name": "hp",
+      "region": [
+        115,
+        12,
+        170,
+        56
+      ],
+      "whitelist": "0123456789/",
+      "parser": "pair"
+    },
+    {
+      "name": "gold",
+      "region": [
+        325,
+        12,
+        130,
+        56
+      ],
+      "whitelist": "0123456789",
+      "parser": "int"
+    },
+    {
+      "name": "energy",
+      "region": [
+        35,
+        790,
+        120,
+        150
+      ],
+      "whitelist": "0123456789/",
+      "parser": "int"
+    },
+    {
+      "name": "floor",
+      "region": [
+        760,
+        0,
+        150,
+        70
+      ],
+      "whitelist": "0123456789",
+      "parser": "int"
+    }
+  ],
+  "actions": [
+    {
+      "screen": "menu",
+      "kind": "navigate",
+      "label": "Single Play",
+      "point": [
+        540,
+        490
+      ],
+      "tags": [
+        "menu",
+        "start"
+      ],
+      "payload": {
+        "target": "single_play"
+      },
+      "threshold": 0.95,
+      "keys": [
+        "up",
+        "up",
+        "up",
+        "up",
+        "up",
+        "up",
+        "enter"
+      ],
+      "buttons": [
+        "dpad_up",
+        "dpad_up",
+        "dpad_up",
+        "dpad_up",
+        "dpad_up",
+        "dpad_up",
+        "a"
+      ],
+      "settle_ms": 2500,
+      "hold_ms": 700,
+      "gap_ms": 900
+    },
+    {
+      "screen": "profile_select",
+      "kind": "navigate",
+      "label": "Select profile 1",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "menu",
+        "start",
+        "profile"
+      ],
+      "payload": {
+        "target": "profile_1"
+      },
+      "threshold": 0.95,
+      "key": "enter",
+      "buttons": [
+        "y"
+      ],
+      "settle_ms": 1200,
+      "hold_ms": 120,
+      "gap_ms": 300
+    },
+    {
+      "screen": "mode_select",
+      "kind": "navigate",
+      "label": "Standard run",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "menu",
+        "start"
+      ],
+      "payload": {
+        "target": "standard"
+      },
+      "threshold": 0.95,
+      "buttons": [
+        "dpad_left",
+        "a"
+      ],
+      "settle_ms": 2500,
+      "hold_ms": 700,
+      "gap_ms": 900
+    },
+    {
+      "screen": "character_select",
+      "kind": "navigate",
+      "label": "Select Ironclad",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "menu",
+        "start",
+        "ironclad"
+      ],
+      "payload": {
+        "target": "ironclad"
+      },
+      "threshold": 0.95,
+      "keys": [
+        "down",
+        "up",
+        "enter"
+      ],
+      "buttons": [
+        "dpad_down",
+        "dpad_up",
+        "a"
+      ],
+      "settle_ms": 2500,
+      "hold_ms": 700,
+      "gap_ms": 900
+    },
+    {
+      "screen": "neow_choice",
+      "kind": "navigate",
+      "label": "Take default whale option",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "start",
+        "neow"
+      ],
+      "payload": {
+        "target": "neow_default"
+      },
+      "threshold": 0.95,
+      "key": "enter",
+      "buttons": [
+        "a"
+      ],
+      "settle_ms": 2500,
+      "hold_ms": 700,
+      "gap_ms": 900
+    },
+    {
+      "screen": "neow_dialog",
+      "kind": "navigate",
+      "label": "Advance whale dialog",
+      "point": [
+        450,
+        850
+      ],
+      "tags": [
+        "start",
+        "dialog"
+      ],
+      "payload": {
+        "target": "advance"
+      },
+      "threshold": 0.95,
+      "buttons": [
+        "dpad_down",
+        "a"
+      ],
+      "settle_ms": 2500,
+      "hold_ms": 700,
+      "gap_ms": 1000
+    },
+    {
+      "screen": "relic_popup",
+      "kind": "navigate",
+      "label": "Close relic popup",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "start",
+        "dialog"
+      ],
+      "payload": {
+        "target": "close_relic"
+      },
+      "threshold": 0.95,
+      "key": "enter",
+      "buttons": [
+        "a"
+      ],
+      "settle_ms": 2500,
+      "hold_ms": 700,
+      "gap_ms": 900
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 1",
+      "point": [
+        294,
+        294
+      ],
+      "tags": [
+        "attack"
+      ],
+      "payload": {
+        "card": "slot_1"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 2",
+      "point": [
+        510,
+        294
+      ],
+      "tags": [
+        "attack"
+      ],
+      "payload": {
+        "card": "slot_2"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 3",
+      "point": [
+        725,
+        294
+      ],
+      "tags": [
+        "attack"
+      ],
+      "payload": {
+        "card": "slot_3"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 4",
+      "point": [
+        944,
+        294
+      ],
+      "tags": [
+        "attack"
+      ],
+      "payload": {
+        "card": "slot_4"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 5",
+      "point": [
+        1154,
+        294
+      ],
+      "tags": [
+        "attack"
+      ],
+      "payload": {
+        "card": "slot_5"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 6",
+      "point": [
+        294,
+        631
+      ],
+      "tags": [
+        "block"
+      ],
+      "payload": {
+        "card": "slot_6"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 7",
+      "point": [
+        510,
+        631
+      ],
+      "tags": [
+        "block"
+      ],
+      "payload": {
+        "card": "slot_7"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 8",
+      "point": [
+        725,
+        631
+      ],
+      "tags": [
+        "block"
+      ],
+      "payload": {
+        "card": "slot_8"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 9",
+      "point": [
+        944,
+        631
+      ],
+      "tags": [
+        "block"
+      ],
+      "payload": {
+        "card": "slot_9"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "card_grid",
+      "kind": "pick_card",
+      "label": "Card slot 10",
+      "point": [
+        1154,
+        631
+      ],
+      "tags": [
+        "starter_core"
+      ],
+      "payload": {
+        "card": "slot_10"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "confirm_popup",
+      "kind": "navigate",
+      "label": "Confirm modal",
+      "point": [
+        1432,
+        690
+      ],
+      "tags": [
+        "confirm"
+      ],
+      "payload": {
+        "target": "confirm_modal"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "continue",
+      "kind": "navigate",
+      "label": "Continue",
+      "point": [
+        1340,
+        708
+      ],
+      "tags": [
+        "continue",
+        "progress"
+      ],
+      "payload": {},
+      "threshold": 0.95,
+      "key": "enter",
+      "buttons": [
+        "a"
+      ],
+      "hold_ms": 80
+    },
+    {
+      "screen": "event",
+      "kind": "navigate",
+      "label": "Jungle: Push through",
+      "point": [
+        1034,
+        560
+      ],
+      "tags": [
+        "gold",
+        "progress",
+        "hp_cost"
+      ],
+      "payload": {
+        "event": "jungle",
+        "choice": "push_through"
+      },
+      "threshold": 0.95,
+      "template_path": "templates\\event_jungle_option_top.png",
+      "region": [
+        516,
+        326,
+        410,
+        47
+      ],
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "screen": "event",
+      "kind": "navigate",
+      "label": "Jungle: Rest and fight",
+      "point": [
+        1034,
+        619
+      ],
+      "tags": [
+        "heal",
+        "combat",
+        "progress"
+      ],
+      "payload": {
+        "event": "jungle",
+        "choice": "rest_then_fight"
+      },
+      "threshold": 0.95,
+      "template_path": "templates\\event_jungle_option_bottom.png",
+      "region": [
+        516,
+        385,
+        410,
+        47
+      ],
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "screen": "event",
+      "kind": "navigate",
+      "label": "Jungle: Fight!",
+      "point": [
+        1034,
+        564
+      ],
+      "tags": [
+        "combat",
+        "progress"
+      ],
+      "payload": {
+        "event": "jungle",
+        "choice": "fight"
+      },
+      "threshold": 0.95,
+      "template_path": "templates\\event_jungle_fight_option.png",
+      "region": [
+        515,
+        330,
+        410,
+        47
+      ],
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "screen": "event",
+      "kind": "navigate",
+      "label": "Proceed event",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "progress"
+      ],
+      "payload": {
+        "target": "generic_event_proceed"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "event",
+      "kind": "navigate",
+      "label": "Event option 1",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "progress"
+      ],
+      "payload": {
+        "target": "generic_event_option",
+        "option_index": 0
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "event",
+      "kind": "navigate",
+      "label": "Event option 2",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "progress"
+      ],
+      "payload": {
+        "target": "generic_event_option",
+        "option_index": 1
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "event",
+      "kind": "navigate",
+      "label": "Event option 3",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "progress"
+      ],
+      "payload": {
+        "target": "generic_event_option",
+        "option_index": 2
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "map",
+      "kind": "choose_path",
+      "label": "Take highlighted node",
+      "point": [
+        404,
+        495
+      ],
+      "tags": [
+        "safe",
+        "progress"
+      ],
+      "payload": {
+        "path": "highlighted"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "map",
+      "kind": "choose_path",
+      "label": "Elite path",
+      "point": [
+        1048,
+        495
+      ],
+      "tags": [
+        "elite",
+        "aggressive"
+      ],
+      "payload": {
+        "path": "elite"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "map",
+      "kind": "choose_path",
+      "label": "Safe path",
+      "point": [
+        830,
+        489
+      ],
+      "tags": [
+        "safe"
+      ],
+      "payload": {
+        "path": "safe"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "reward_menu",
+      "kind": "navigate",
+      "label": "Take gold",
+      "point": [
+        522,
+        228
+      ],
+      "tags": [
+        "gold",
+        "progress"
+      ],
+      "payload": {
+        "target": "gold"
+      },
+      "threshold": 0.95,
+      "template_path": "templates\\reward_gold_action.png",
+      "region": [
+        416,
+        206,
+        212,
+        42
+      ],
+      "buttons": [
+        "a"
+      ],
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "screen": "reward_menu",
+      "kind": "navigate",
+      "label": "Open card reward",
+      "point": [
+        522,
+        281
+      ],
+      "tags": [
+        "reward",
+        "progress"
+      ],
+      "payload": {
+        "target": "card_reward"
+      },
+      "threshold": 0.95,
+      "template_path": "templates\\reward_card_action.png",
+      "region": [
+        416,
+        257,
+        212,
+        47
+      ],
+      "buttons": [
+        "a"
+      ],
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "screen": "reward_menu",
+      "kind": "navigate",
+      "label": "Open card reward",
+      "point": [
+        522,
+        228
+      ],
+      "tags": [
+        "reward",
+        "progress"
+      ],
+      "payload": {
+        "target": "card_reward"
+      },
+      "threshold": 0.95,
+      "template_path": "templates\\reward_card_action_single.png",
+      "region": [
+        416,
+        206,
+        212,
+        43
+      ],
+      "buttons": [
+        "a"
+      ],
+      "scale_template": false,
+      "scale_region": false
+    },
+    {
+      "screen": "reward_cards",
+      "kind": "pick_card",
+      "label": "Card option 1",
+      "point": [
+        485,
+        530
+      ],
+      "tags": [
+        "attack"
+      ],
+      "payload": {
+        "card": "slot_1"
+      },
+      "threshold": 0.95,
+      "key": "1",
+      "buttons": [
+        "dpad_left",
+        "a"
+      ],
+      "hold_ms": 80
+    },
+    {
+      "screen": "reward_cards",
+      "kind": "pick_card",
+      "label": "Card option 2",
+      "point": [
+        780,
+        530
+      ],
+      "tags": [
+        "block"
+      ],
+      "payload": {
+        "card": "slot_2"
+      },
+      "threshold": 0.95,
+      "key": "2",
+      "buttons": [
+        "a"
+      ],
+      "hold_ms": 80
+    },
+    {
+      "screen": "reward_cards",
+      "kind": "pick_card",
+      "label": "Card option 3",
+      "point": [
+        1075,
+        530
+      ],
+      "tags": [
+        "scaling"
+      ],
+      "payload": {
+        "card": "slot_3"
+      },
+      "threshold": 0.95,
+      "key": "3",
+      "buttons": [
+        "dpad_right",
+        "a"
+      ],
+      "hold_ms": 80
+    },
+    {
+      "screen": "reward_cards",
+      "kind": "skip_reward",
+      "label": "Skip reward",
+      "point": [
+        780,
+        905
+      ],
+      "tags": [
+        "skip"
+      ],
+      "payload": {},
+      "threshold": 0.95,
+      "key": "down",
+      "buttons": [
+        "b"
+      ],
+      "hold_ms": 80
+    },
+    {
+      "screen": "reward_gold_only",
+      "kind": "navigate",
+      "label": "Take gold and continue",
+      "point": [
+        522,
+        228
+      ],
+      "tags": [
+        "gold",
+        "progress"
+      ],
+      "payload": {
+        "target": "gold_only"
+      },
+      "threshold": 0.95,
+      "key": "enter",
+      "buttons": [
+        "dpad_down",
+        "a"
+      ],
+      "hold_ms": 80
+    },
+    {
+      "screen": "rest",
+      "kind": "rest",
+      "label": "Rest",
+      "point": [
+        720,
+        525
+      ],
+      "tags": [
+        "heal"
+      ],
+      "payload": {},
+      "threshold": 0.95
+    },
+    {
+      "screen": "rest",
+      "kind": "smith",
+      "label": "Smith",
+      "point": [
+        1180,
+        525
+      ],
+      "tags": [
+        "upgrade"
+      ],
+      "payload": {},
+      "threshold": 0.95
+    },
+    {
+      "screen": "shop",
+      "kind": "navigate",
+      "label": "Close detail popup",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "shop",
+        "popup"
+      ],
+      "payload": {},
+      "threshold": 0.95,
+      "key": "escape",
+      "buttons": [
+        "b"
+      ],
+      "hold_ms": 80
+    },
+    {
+      "screen": "shop",
+      "kind": "navigate",
+      "label": "Leave shop",
+      "point": [
+        62,
+        710
+      ],
+      "tags": [
+        "progress",
+        "shop_exit"
+      ],
+      "payload": {},
+      "threshold": 0.95
+    },
+    {
+      "screen": "game_over",
+      "kind": "navigate",
+      "label": "Main menu",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "menu",
+        "restart"
+      ],
+      "payload": {},
+      "threshold": 0.95,
+      "key": "down",
+      "keys": [
+        "down",
+        "enter"
+      ],
+      "buttons": [
+        "dpad_down",
+        "a"
+      ],
+      "settle_ms": 400,
+      "hold_ms": 80,
+      "gap_ms": 120
+    },
+    {
+      "screen": "battle",
+      "kind": "play_card",
+      "label": "Play basic turn",
+      "point": [
+        0,
+        0
+      ],
+      "tags": [
+        "combat",
+        "progress"
+      ],
+      "payload": {
+        "battle_macro": "basic_turn"
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "battle",
+      "kind": "navigate",
+      "label": "Use potion 1",
+      "point": [
+        423,
+        47
+      ],
+      "tags": [
+        "combat",
+        "potion",
+        "consumable"
+      ],
+      "payload": {
+        "target": "potion",
+        "slot": 1
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "battle",
+      "kind": "navigate",
+      "label": "Use potion 2",
+      "point": [
+        468,
+        48
+      ],
+      "tags": [
+        "combat",
+        "potion",
+        "consumable"
+      ],
+      "payload": {
+        "target": "potion",
+        "slot": 2
+      },
+      "threshold": 0.95
+    },
+    {
+      "screen": "battle",
+      "kind": "end_turn",
+      "label": "End turn",
+      "point": [
+        1685,
+        920
+      ],
+      "tags": [
+        "pass"
+      ],
+      "payload": {},
+      "threshold": 0.95,
+      "key": "e",
+      "buttons": [
+        "a"
+      ],
+      "hold_ms": 80
+    }
+  ],
+  "start_actions": [
+    {
+      "screen": "map",
+      "kind": "choose_path",
+      "label": "Begin run",
+      "point": [
+        960,
+        900
+      ],
+      "tags": [
+        "bootstrap"
+      ],
+      "payload": {},
+      "threshold": 0.95
+    }
+  ]
+}
