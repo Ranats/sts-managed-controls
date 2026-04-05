@@ -47,7 +47,6 @@ from sts_bot.managed_controls_license import (
     ManagedControlsLicenseError,
 )
 from sts_bot.models import ScreenKind
-from sts_bot.observe import append_jsonl, state_to_record
 from sts_bot.policy import HeuristicPolicy
 
 try:
@@ -2015,6 +2014,8 @@ def main() -> None:
         return
 
     if args.command == "watch-live":
+        from sts_bot.observe import append_jsonl, state_to_record
+
         adapter = WindowsStsAdapter(args.profile)
         adapter.profile = _load_profile_for_live(args.profile, args)
         adapter.start_run(focus=args.focus)
