@@ -2,7 +2,7 @@
 
 Local single-player runtime toolkit for Slay the Spire 2. Inspect live managed state, change gold/block/energy, apply powers, add cards, obtain relics, and run bridge-based in-process actions from a desktop UI.
 
-![STS Managed Controls UI](docs/release/gui.png)
+![STS Managed Controls Demo](docs/release/managed-controls-demo.gif)
 
 ## What This Release Is
 
@@ -89,6 +89,12 @@ python -m sts_bot.cli set-managed-energy --profile profiles\windows.example.json
 python -m sts_bot.cli list-game-catalog --kind cards --query whirlwind
 ```
 
+## GUI Overview
+
+The desktop control panel is the main public entrypoint for the current release.
+
+![STS Managed Controls UI](docs/release/gui.png)
+
 ## Bridge Workflow
 
 Install the local bridge mod:
@@ -167,6 +173,7 @@ Release planning:
 
 Bundled media:
 
+- `docs/release/managed-controls-demo.gif`
 - `docs/release/gui.png`
 - `docs/release/Slay the Spire 2 - 2026-04-03 21-21-07.mp4`
 - `docs/release/Slay the Spire 2 - 2026-04-05 18-24-09.mp4`
