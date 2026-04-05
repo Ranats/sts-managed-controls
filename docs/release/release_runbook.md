@@ -62,8 +62,16 @@ Use:
 What to upload in the first GitHub Release:
 
 - the generated zip
-- one screenshot of the control UI
-- one short GIF showing a live action such as hand add or power apply
+- the bundled UI screenshot: `docs/release/gui.png`
+- one or both bundled demo videos:
+  - `docs/release/Slay the Spire 2 - 2026-04-03 21-21-07.mp4`
+  - `docs/release/Slay the Spire 2 - 2026-04-05 18-24-09.mp4`
+
+If GitHub Release assets feel too heavy, upload the zip there and use the screenshot/video files in:
+
+- the repository README
+- the release description
+- Nexus screenshots / media
 
 ## Nexus Mods
 
@@ -103,9 +111,10 @@ Keep labeled experimental:
 
 Recommended launch model:
 
-- free release
+- 30-minute managed-controls trial
+- local unlock-key activation for unlimited use
 - optional support links
-- no paywall on the core tool
+- be explicit that the current unlock flow is a soft local gate, not hardened DRM
 
 Good places for support links:
 

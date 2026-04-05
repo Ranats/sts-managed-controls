@@ -20,6 +20,9 @@ using MegaCrit.Sts2.Core.Models.Powers;
 using MegaCrit.Sts2.Core.Models.Relics;
 using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.Localization.DynamicVars;
+using MegaCrit.Sts2.Core.Map;
+using MegaCrit.Sts2.Core.Rooms;
 
 namespace CodexBridge;
 
@@ -31,11 +34,15 @@ public static class CodexBridgeMod
     private static readonly Queue<BridgeCommand> PendingRun = new();
     private static readonly object PendingCombatLock = new object();
     private static readonly object PendingRunLock = new object();
+    private static readonly object AutoPowerRulesLock = new object();
     private static Callable? _processCallable;
     private static bool _processConnected;
     private static bool _processReadyLogged;
     private static bool _processBusy;
     private static int _initialized;
+    private static readonly List<AutoPowerRule> AutoPowerRules = new();
+    private static CombatState? _autoPowerCombatState;
+    private static bool _autoPowerAppliedForCombat;
     private static readonly Lazy<Dictionary<string, Type>> CardTypeIndex = new(() => BuildTypeIndex("MegaCrit.Sts2.Core.Models.Cards", typeof(CardModel), stripSuffix: "Card", requireParameterlessConstructor: false));
     private static readonly Lazy<Dictionary<string, Type>> PowerTypeIndex = new(() => BuildTypeIndex("MegaCrit.Sts2.Core.Models.Powers", typeof(PowerModel), stripSuffix: "Power", requireParameterlessConstructor: true));
     private static readonly Lazy<Dictionary<string, Type>> RelicTypeIndex = new(() => BuildTypeIndex("MegaCrit.Sts2.Core.Models.Relics", typeof(RelicModel), stripSuffix: "Relic", requireParameterlessConstructor: true));
@@ -135,6 +142,12 @@ public static class CodexBridgeMod
             return;
         }
 
+        if (string.Equals(action, "tune_card_var", StringComparison.OrdinalIgnoreCase))
+        {
+            await TuneCombatCardVarAsync(state, command);
+            return;
+        }
+
         if (string.Equals(action, "obtain_relic", StringComparison.OrdinalIgnoreCase))
         {
             await ObtainRelicAsync((RunState)state.RunState, command);
@@ -162,6 +175,24 @@ public static class CodexBridgeMod
         if (string.Equals(action, "obtain_relic", StringComparison.OrdinalIgnoreCase))
         {
             await ObtainRelicAsync(state, command);
+            return;
+        }
+
+        if (string.Equals(action, "jump_to_map_coord", StringComparison.OrdinalIgnoreCase))
+        {
+            await JumpToMapCoordAsync(state, command);
+            return;
+        }
+
+        if (string.Equals(action, "tune_card_var", StringComparison.OrdinalIgnoreCase))
+        {
+            await TuneRunCardVarAsync(state, command);
+            return;
+        }
+
+        if (string.Equals(action, "tune_relic_var", StringComparison.OrdinalIgnoreCase))
+        {
+            await TuneRelicVarAsync(state, command);
             return;
         }
 
@@ -193,6 +224,7 @@ public static class CodexBridgeMod
         for (int index = 0; index < count; index++)
         {
             CardModel card = CreateRunCard(state, player, command.CardType);
+            ApplyUpgrades(card, command.UpgradeCount);
             preparedCards.Add(PrepareCardForDeck(state, card));
         }
 
@@ -212,10 +244,11 @@ public static class CodexBridgeMod
         for (int index = 0; index < count; index++)
         {
             CardModel card = CreateCombatCard(state, player, command.CardType);
+            ApplyUpgrades(card, command.UpgradeCount);
             await CardPileCmd.AddGeneratedCardToCombat(card, PileType.Hand, true, CardPilePosition.Random);
         }
 
-        Log.Warn("CodexBridge added " + count + " " + command.CardType + " card(s) to hand");
+        Log.Warn("CodexBridge added " + count + " " + command.CardType + " card(s) to hand upgrades=" + command.UpgradeCount);
     }
 
     private static async System.Threading.Tasks.Task ObtainRelicAsync(RunState state, BridgeCommand command)
@@ -246,6 +279,7 @@ public static class CodexBridgeMod
         for (int index = 0; index < replacementCount; index++)
         {
             CardModel card = CreateRunCard(state, player, command.CardType);
+            ApplyUpgrades(card, command.UpgradeCount);
             replacementCards.Add(PrepareCardForDeck(state, card));
         }
 
@@ -259,7 +293,84 @@ public static class CodexBridgeMod
             CommitCardToDeck(state, player, card, silent: false);
         }
 
-        Log.Warn("CodexBridge replaced master deck with " + replacementCount + " " + command.CardType + " card(s)");
+        Log.Warn("CodexBridge replaced master deck with " + replacementCount + " " + command.CardType + " card(s) upgrades=" + command.UpgradeCount);
+    }
+
+    private static async System.Threading.Tasks.Task JumpToMapCoordAsync(RunState state, BridgeCommand command)
+    {
+        RunManager? runManager = RunManager.Instance;
+        if (runManager == null)
+        {
+            throw new InvalidOperationException("run manager not found");
+        }
+
+        MapCoord coord = new MapCoord(command.Col, command.Row);
+        ActMap map = state.Map ?? throw new InvalidOperationException("run map not found");
+        if (!map.HasPoint(coord))
+        {
+            throw new InvalidOperationException("map coord not found: " + coord);
+        }
+
+        MapPoint point = map.GetPoint(coord);
+        RoomType roomType = MapPointTypeToRoomType(point.PointType);
+        AbstractModel? model = point.Quests.FirstOrDefault();
+        await runManager.EnterMapCoordDebug(coord, roomType, point.PointType, model, showTransition: false);
+        Log.Warn("CodexBridge entered map coord " + coord + " room=" + roomType + " pointType=" + point.PointType);
+    }
+
+    private static System.Threading.Tasks.Task TuneRunCardVarAsync(RunState state, BridgeCommand command)
+    {
+        Player player = ResolvePlayer(state);
+        CardPile pile = ResolveRunCardPile(player, command.Scope);
+        int tuned = TuneCardsInPile(pile, command);
+        if (tuned == 0)
+        {
+            throw new InvalidOperationException("card dynamic var not found or card missing: " + command.CardType + "/" + command.VarName + " scope=" + command.Scope);
+        }
+        Log.Warn("CodexBridge tuned " + tuned + " " + command.CardType + " card(s) in " + command.Scope + " var=" + command.VarName + " amount=" + command.Amount);
+        return System.Threading.Tasks.Task.CompletedTask;
+    }
+
+    private static System.Threading.Tasks.Task TuneCombatCardVarAsync(CombatState state, BridgeCommand command)
+    {
+        Player player = ResolvePlayer(state);
+        int tuned = 0;
+        foreach (CardPile pile in ResolveCombatCardPiles(player, command.Scope))
+        {
+            tuned += TuneCardsInPile(pile, command);
+        }
+
+        if (tuned == 0)
+        {
+            throw new InvalidOperationException("card dynamic var not found or card missing: " + command.CardType + "/" + command.VarName + " scope=" + command.Scope);
+        }
+
+        Log.Warn("CodexBridge tuned " + tuned + " " + command.CardType + " combat card(s) scope=" + command.Scope + " var=" + command.VarName + " amount=" + command.Amount);
+        return System.Threading.Tasks.Task.CompletedTask;
+    }
+
+    private static System.Threading.Tasks.Task TuneRelicVarAsync(RunState state, BridgeCommand command)
+    {
+        Player player = ResolvePlayer(state);
+        Type relicModelType = ResolveIndexedType(RelicTypeIndex.Value, command.RelicType, "relic");
+        int tuned = 0;
+        foreach (RelicModel relic in player.Relics.Where(relic => relic.GetType() == relicModelType))
+        {
+            if (!TrySetDynamicVar(relic.DynamicVars, command.VarName, command.Amount, command.Mode))
+            {
+                continue;
+            }
+
+            tuned++;
+        }
+
+        if (tuned == 0)
+        {
+            throw new InvalidOperationException("relic dynamic var not found or relic missing: " + command.RelicType + "/" + command.VarName);
+        }
+
+        Log.Warn("CodexBridge tuned " + tuned + " " + command.RelicType + " relic(s) var=" + command.VarName + " amount=" + command.Amount);
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 
     private static Creature? ResolveTarget(CombatState state, BridgeCommand command)
@@ -311,6 +422,17 @@ public static class CodexBridgeMod
         return CreateCard(state, owner, cardType, RunCreateCardMethod);
     }
 
+    private static void ApplyUpgrades(CardModel card, int upgradeCount)
+    {
+        int remaining = Math.Max(0, upgradeCount);
+        while (remaining > 0 && card.IsUpgradable)
+        {
+            card.UpgradeInternal();
+            card.FinalizeUpgradeInternal();
+            remaining--;
+        }
+    }
+
     private static CardModel PrepareCardForDeck(RunState state, CardModel card)
     {
         if (!Hook.ShouldAddToDeck(state, card, out AbstractModel? preventer))
@@ -351,6 +473,130 @@ public static class CodexBridgeMod
         }
 
         return card;
+    }
+
+    private static CardPile ResolveRunCardPile(Player player, string scope)
+    {
+        string normalizedScope = NormalizeLookup(scope);
+        if (normalizedScope == "masterdeck" || normalizedScope == "deck")
+        {
+            return player.Deck;
+        }
+
+        throw new InvalidOperationException("unsupported run card scope: " + scope);
+    }
+
+    private static IEnumerable<CardPile> ResolveCombatCardPiles(Player player, string scope)
+    {
+        string normalizedScope = NormalizeLookup(scope);
+        PlayerCombatState combatState = player.PlayerCombatState;
+        return normalizedScope switch
+        {
+            "hand" => new[] { combatState.Hand },
+            "draw" or "drawpile" => new[] { combatState.DrawPile },
+            "discard" or "discardpile" => new[] { combatState.DiscardPile },
+            "exhaust" or "exhaustpile" => new[] { combatState.ExhaustPile },
+            "play" or "playpile" => new[] { combatState.PlayPile },
+            "allpiles" => combatState.AllPiles,
+            _ => throw new InvalidOperationException("unsupported combat card scope: " + scope),
+        };
+    }
+
+    private static int TuneCardsInPile(CardPile pile, BridgeCommand command)
+    {
+        Type cardModelType = ResolveIndexedType(CardTypeIndex.Value, command.CardType, "card");
+        int tuned = 0;
+        foreach (CardModel card in pile.Cards.Where(card => card.GetType() == cardModelType))
+        {
+            if (!TrySetDynamicVar(card.DynamicVars, command.VarName, command.Amount, command.Mode))
+            {
+                continue;
+            }
+
+            tuned++;
+        }
+
+        if (tuned > 0)
+        {
+            pile.InvokeContentsChanged();
+        }
+
+        return tuned;
+    }
+
+    private static bool TrySetDynamicVar(DynamicVarSet dynamicVars, string varName, decimal amount, string mode)
+    {
+        if (!TryResolveDynamicVar(dynamicVars, varName, out DynamicVar? dynamicVar) || dynamicVar == null)
+        {
+            return false;
+        }
+
+        decimal current = dynamicVar.BaseValue;
+        decimal next = string.Equals(mode, "add", StringComparison.OrdinalIgnoreCase) ? current + amount : amount;
+        decimal delta = next - current;
+        if (delta == 0m)
+        {
+            return true;
+        }
+
+        dynamicVar.UpgradeValueBy(delta);
+        dynamicVar.FinalizeUpgrade();
+        return true;
+    }
+
+    private static bool TryResolveDynamicVar(DynamicVarSet dynamicVars, string varName, out DynamicVar? dynamicVar)
+    {
+        dynamicVar = null;
+        if (string.IsNullOrWhiteSpace(varName))
+        {
+            return false;
+        }
+
+        if (dynamicVars.TryGetValue(varName, out dynamicVar))
+        {
+            return dynamicVar != null;
+        }
+
+        string normalized = NormalizeLookup(varName);
+        if (string.IsNullOrEmpty(normalized))
+        {
+            return false;
+        }
+
+        foreach ((string key, DynamicVar value) in dynamicVars)
+        {
+            if (NormalizeLookup(key) == normalized)
+            {
+                dynamicVar = value;
+                return true;
+            }
+        }
+
+        PropertyInfo? property = typeof(DynamicVarSet)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(item => NormalizeLookup(item.Name) == normalized && typeof(DynamicVar).IsAssignableFrom(item.PropertyType));
+        if (property == null)
+        {
+            return false;
+        }
+
+        dynamicVar = property.GetValue(dynamicVars) as DynamicVar;
+        return dynamicVar != null;
+    }
+
+    private static RoomType MapPointTypeToRoomType(MapPointType pointType)
+    {
+        return pointType switch
+        {
+            MapPointType.Shop => RoomType.Shop,
+            MapPointType.Treasure => RoomType.Treasure,
+            MapPointType.RestSite => RoomType.RestSite,
+            MapPointType.Monster => RoomType.Monster,
+            MapPointType.Elite => RoomType.Elite,
+            MapPointType.Boss => RoomType.Boss,
+            MapPointType.Ancient => RoomType.Event,
+            _ => RoomType.Event,
+        };
     }
 
     private static PowerModel CreatePower(string powerType)
@@ -514,7 +760,12 @@ public static class CodexBridgeMod
                     continue;
                 }
 
-                if (RequiresRunState(command.Action))
+                if (TryHandleImmediateCommand(command, writer))
+                {
+                    continue;
+                }
+
+                if (RequiresRunState(command))
                 {
                     lock (PendingRunLock)
                     {
@@ -552,16 +803,43 @@ public static class CodexBridgeMod
         public string PowerType { get; set; } = string.Empty;
         public string CardType { get; set; } = string.Empty;
         public string RelicType { get; set; } = string.Empty;
+        public string VarName { get; set; } = string.Empty;
+        public string Scope { get; set; } = string.Empty;
+        public string Mode { get; set; } = "set";
         public decimal Amount { get; set; }
         public int EnemyIndex { get; set; }
         public int Count { get; set; }
+        public int UpgradeCount { get; set; }
+        public int Col { get; set; }
+        public int Row { get; set; }
     }
 
-    private static bool RequiresRunState(string action)
+    private sealed class AutoPowerRule
     {
-        return string.Equals(action, "add_card_to_deck", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(action, "replace_master_deck", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(action, "obtain_relic", StringComparison.OrdinalIgnoreCase);
+        public string Target { get; set; } = "player";
+        public string PowerType { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public int EnemyIndex { get; set; }
+    }
+
+    private static bool RequiresRunState(BridgeCommand command)
+    {
+        if (string.Equals(command.Action, "add_card_to_deck", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(command.Action, "replace_master_deck", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(command.Action, "obtain_relic", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(command.Action, "jump_to_map_coord", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(command.Action, "tune_relic_var", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.Equals(command.Action, "tune_card_var", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        string scope = NormalizeLookup(command.Scope);
+        return scope == "deck" || scope == "masterdeck";
     }
 
     private static BridgeCommand? ParseCommand(string line)
@@ -602,6 +880,15 @@ public static class CodexBridgeMod
                 case "relic_type":
                     command.RelicType = value;
                     break;
+                case "var_name":
+                    command.VarName = value;
+                    break;
+                case "scope":
+                    command.Scope = value;
+                    break;
+                case "mode":
+                    command.Mode = value;
+                    break;
                 case "amount":
                     command.Amount = ParseDecimal(value);
                     break;
@@ -611,10 +898,68 @@ public static class CodexBridgeMod
                 case "count":
                     command.Count = ParseInt(value);
                     break;
+                case "upgrade_count":
+                    command.UpgradeCount = ParseInt(value);
+                    break;
+                case "col":
+                    command.Col = ParseInt(value);
+                    break;
+                case "row":
+                    command.Row = ParseInt(value);
+                    break;
             }
         }
 
         return sawAction ? command : null;
+    }
+
+    private static bool TryHandleImmediateCommand(BridgeCommand command, StreamWriter writer)
+    {
+        if (string.Equals(command.Action, "set_auto_power_on_combat_start", StringComparison.OrdinalIgnoreCase))
+        {
+            lock (AutoPowerRulesLock)
+            {
+                AutoPowerRule? existing = AutoPowerRules.FirstOrDefault(
+                    item => string.Equals(item.Target, command.Target, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(item.PowerType, command.PowerType, StringComparison.OrdinalIgnoreCase)
+                        && item.EnemyIndex == command.EnemyIndex);
+                if (existing == null)
+                {
+                    AutoPowerRules.Add(
+                        new AutoPowerRule
+                        {
+                            Target = command.Target,
+                            PowerType = command.PowerType,
+                            Amount = command.Amount,
+                            EnemyIndex = command.EnemyIndex,
+                        });
+                }
+                else
+                {
+                    existing.Amount = command.Amount;
+                }
+            }
+
+            writer.WriteLine("ok=true;status=configured");
+            return true;
+        }
+
+        if (string.Equals(command.Action, "clear_auto_power_on_combat_start", StringComparison.OrdinalIgnoreCase))
+        {
+            int removed;
+            lock (AutoPowerRulesLock)
+            {
+                removed = AutoPowerRules.RemoveAll(
+                    item => (string.IsNullOrWhiteSpace(command.Target) || string.Equals(item.Target, command.Target, StringComparison.OrdinalIgnoreCase))
+                        && (string.IsNullOrWhiteSpace(command.PowerType) || string.Equals(item.PowerType, command.PowerType, StringComparison.OrdinalIgnoreCase))
+                        && (command.EnemyIndex <= 0 || item.EnemyIndex == command.EnemyIndex));
+            }
+
+            writer.WriteLine("ok=true;status=cleared;count=" + removed);
+            return true;
+        }
+
+        return false;
     }
 
     private static decimal ParseDecimal(string value)
@@ -642,6 +987,11 @@ public static class CodexBridgeMod
 
         try
         {
+            if (TryApplyAutoPowers())
+            {
+                return;
+            }
+
             if (TryProcessCombatCommand())
             {
                 return;
@@ -652,6 +1002,84 @@ public static class CodexBridgeMod
         catch (Exception ex)
         {
             Log.Error("CodexBridge pump failure: " + ex);
+        }
+    }
+
+    private static bool TryApplyAutoPowers()
+    {
+        CombatManager? combatManager = CombatManager.Instance;
+        if (combatManager == null || !combatManager.IsInProgress)
+        {
+            _autoPowerCombatState = null;
+            _autoPowerAppliedForCombat = false;
+            return false;
+        }
+
+        CombatState? state = combatManager.DebugOnlyGetState();
+        if (state == null)
+        {
+            return false;
+        }
+
+        if (!ReferenceEquals(_autoPowerCombatState, state))
+        {
+            _autoPowerCombatState = state;
+            _autoPowerAppliedForCombat = false;
+        }
+
+        if (_autoPowerAppliedForCombat || !IsCombatSafe(combatManager))
+        {
+            return false;
+        }
+
+        AutoPowerRule[] rules;
+        lock (AutoPowerRulesLock)
+        {
+            if (AutoPowerRules.Count == 0)
+            {
+                return false;
+            }
+
+            rules = AutoPowerRules
+                .Select(item => new AutoPowerRule { Target = item.Target, PowerType = item.PowerType, Amount = item.Amount, EnemyIndex = item.EnemyIndex })
+                .ToArray();
+        }
+
+        _autoPowerAppliedForCombat = true;
+        _processBusy = true;
+        Log.Warn("CodexBridge applying auto combat-start powers count=" + rules.Length);
+        _ = CompleteAutoPowerRulesAsync(state, rules);
+        return true;
+    }
+
+    private static async System.Threading.Tasks.Task CompleteAutoPowerRulesAsync(CombatState state, IReadOnlyList<AutoPowerRule> rules)
+    {
+        try
+        {
+            foreach (AutoPowerRule rule in rules)
+            {
+                await ApplyPowerAsync(
+                    state,
+                    new BridgeCommand
+                    {
+                        Action = "apply_power",
+                        Target = rule.Target,
+                        PowerType = rule.PowerType,
+                        Amount = rule.Amount,
+                        EnemyIndex = rule.EnemyIndex,
+                    });
+            }
+
+            Log.Warn("CodexBridge completed auto combat-start powers");
+        }
+        catch (Exception ex)
+        {
+            _autoPowerAppliedForCombat = false;
+            Log.Error("CodexBridge auto combat-start powers failed: " + ex);
+        }
+        finally
+        {
+            _processBusy = false;
         }
     }
 

@@ -6,6 +6,7 @@ from sts_bot.managed_probe import (
     ManagedBlockWriteResult,
     ManagedEnergyWriteResult,
     ManagedEnemySnapshot,
+    ManagedGoldWriteResult,
     ManagedPowerAliasResult,
     ManagedPowerSnapshot,
     ManagedPowerWriteResult,
@@ -237,6 +238,36 @@ class ManagedProbeSnapshotTest(unittest.TestCase):
         self.assertEqual(result.previous_max_energy, 3)
         self.assertEqual(result.requested_max_energy, 100)
         self.assertTrue(result.wrote_max_energy)
+
+    def test_gold_write_result_parses_write_metadata(self) -> None:
+        result = ManagedGoldWriteResult.from_payload(
+            {
+                "pid": 2348,
+                "runtime_version": "9.0.0",
+                "floor": 11,
+                "ascension": 4,
+                "gold": 999,
+                "hp": 23,
+                "max_hp": 80,
+                "block": 0,
+                "energy": 3,
+                "max_energy": 3,
+                "write": {
+                    "field": "player_gold",
+                    "gold_address": "0x857bbb38",
+                    "previous_gold": 538,
+                    "requested_gold": 999,
+                    "ui_address": "0x84c2c44c",
+                    "previous_ui_gold": 538,
+                    "wrote_ui_gold": True,
+                },
+            }
+        )
+
+        self.assertEqual(result.previous_gold, 538)
+        self.assertEqual(result.requested_gold, 999)
+        self.assertEqual(result.ui_address, "0x84c2c44c")
+        self.assertTrue(result.wrote_ui_gold)
 
 
 if __name__ == "__main__":

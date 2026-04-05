@@ -58,6 +58,10 @@ foreach ($path in $publicPaths) {
     Copy-PublicPath -RelativePath $path
 }
 
+Get-ChildItem -LiteralPath (Join-Path $stagingDir "src") -Directory -Filter "*.egg-info" -ErrorAction SilentlyContinue | ForEach-Object {
+    Remove-Item -LiteralPath $_.FullName -Recurse -Force
+}
+
 $manifest = [ordered]@{
     version = $Version
     created_at = (Get-Date).ToString("s")

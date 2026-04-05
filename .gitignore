@@ -11,6 +11,7 @@ captures/
 observations/
 reports/
 dist/
+.managed_controls/
 
 data/
 AGENTS.md

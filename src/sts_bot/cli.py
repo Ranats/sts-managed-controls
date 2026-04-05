@@ -38,20 +38,32 @@ from sts_bot.kb_learning import CodexKBLearner
 from sts_bot.knowledge import set_active_kb_overlay_path
 from sts_bot.live_runner import LiveLoopRunner
 from sts_bot.logging import DEFAULT_DB_PATH, RunLogger
+from sts_bot.managed_controls_license import (
+    activate_managed_controls,
+    ensure_managed_controls_access,
+    get_managed_controls_license_status,
+    ManagedControlsLicenseError,
+)
 from sts_bot.managed_probe import (
     alias_managed_powers,
     ManagedProbeError,
     probe_managed_numeric,
     set_managed_player_block,
     set_managed_player_energy,
+    set_managed_player_gold,
     set_managed_power_amount,
 )
 from sts_bot.mod_bridge import (
     install_bridge_mod,
     send_bridge_add_card,
-    send_bridge_obtain_relic,
     send_bridge_apply_power,
+    send_bridge_clear_auto_power_on_combat_start,
+    send_bridge_jump_to_map_coord,
     send_bridge_replace_master_deck,
+    send_bridge_obtain_relic,
+    send_bridge_set_auto_power_on_combat_start,
+    send_bridge_tune_card_var,
+    send_bridge_tune_relic_var,
 )
 from sts_bot.models import ScreenKind
 from sts_bot.observe import append_jsonl, state_to_record
@@ -197,6 +209,12 @@ def build_parser() -> argparse.ArgumentParser:
     set_managed_block.add_argument("--focus", action="store_true", help="Focus the game window before writing")
     set_managed_block.add_argument("--json-out", type=Path, default=None)
 
+    set_managed_gold = subparsers.add_parser("set-managed-gold", help="Experimentally write the player's managed gold value")
+    set_managed_gold.add_argument("--profile", type=Path, required=True)
+    set_managed_gold.add_argument("--value", type=int, required=True)
+    set_managed_gold.add_argument("--focus", action="store_true", help="Focus the game window before writing")
+    set_managed_gold.add_argument("--json-out", type=Path, default=None)
+
     set_managed_energy = subparsers.add_parser("set-managed-energy", help="Experimentally write the player's current and optional max energy")
     set_managed_energy.add_argument("--profile", type=Path, required=True)
     set_managed_energy.add_argument("--value", type=int, required=True, help="Current energy value")
@@ -256,6 +274,13 @@ def build_parser() -> argparse.ArgumentParser:
     managed_control_ui = subparsers.add_parser("managed-control-ui", help="Open the local control panel for managed writes and dev console commands")
     managed_control_ui.add_argument("--profile", type=Path, required=True)
 
+    managed_controls_license_status = subparsers.add_parser("managed-controls-license-status", help="Show local trial/unlock status for STS Managed Controls")
+    managed_controls_license_status.add_argument("--json-out", type=Path, default=None)
+
+    activate_managed_controls_cmd = subparsers.add_parser("activate-managed-controls", help="Activate unlimited STS Managed Controls access with a local unlock key")
+    activate_managed_controls_cmd.add_argument("--license-key", type=str, required=True)
+    activate_managed_controls_cmd.add_argument("--json-out", type=Path, default=None)
+
     install_bridge_mod_parser = subparsers.add_parser("install-bridge-mod", help="Build and install the in-process Codex bridge mod into the game mods folder")
     install_bridge_mod_parser.add_argument("--game-dir", type=Path, default=None)
     install_bridge_mod_parser.add_argument("--json-out", type=Path, default=None)
@@ -271,17 +296,52 @@ def build_parser() -> argparse.ArgumentParser:
     bridge_add_card.add_argument("--card-type", type=str, required=True)
     bridge_add_card.add_argument("--destination", type=str, choices=["deck", "hand"], required=True)
     bridge_add_card.add_argument("--count", type=int, default=1)
+    bridge_add_card.add_argument("--upgrade-count", type=int, default=0)
     bridge_add_card.add_argument("--json-out", type=Path, default=None)
 
     bridge_replace_master_deck = subparsers.add_parser("bridge-replace-master-deck", help="Replace the player's master deck through the installed Codex bridge mod")
     bridge_replace_master_deck.add_argument("--card-type", type=str, required=True)
     bridge_replace_master_deck.add_argument("--count", type=int, default=None)
+    bridge_replace_master_deck.add_argument("--upgrade-count", type=int, default=0)
     bridge_replace_master_deck.add_argument("--json-out", type=Path, default=None)
 
     bridge_obtain_relic = subparsers.add_parser("bridge-obtain-relic", help="Obtain a relic through the installed Codex bridge mod")
     bridge_obtain_relic.add_argument("--relic-type", type=str, required=True)
     bridge_obtain_relic.add_argument("--count", type=int, default=1)
     bridge_obtain_relic.add_argument("--json-out", type=Path, default=None)
+
+    bridge_set_auto_power = subparsers.add_parser("bridge-set-auto-power", help="Configure a combat-start power rule in the installed Codex bridge mod")
+    bridge_set_auto_power.add_argument("--power-type", type=str, required=True)
+    bridge_set_auto_power.add_argument("--value", type=int, required=True)
+    bridge_set_auto_power.add_argument("--target", type=str, choices=["player", "enemy"], default="player")
+    bridge_set_auto_power.add_argument("--enemy-index", type=int, default=0)
+    bridge_set_auto_power.add_argument("--json-out", type=Path, default=None)
+
+    bridge_clear_auto_power = subparsers.add_parser("bridge-clear-auto-power", help="Clear combat-start power rules in the installed Codex bridge mod")
+    bridge_clear_auto_power.add_argument("--power-type", type=str, default="")
+    bridge_clear_auto_power.add_argument("--target", type=str, default="")
+    bridge_clear_auto_power.add_argument("--enemy-index", type=int, default=0)
+    bridge_clear_auto_power.add_argument("--json-out", type=Path, default=None)
+
+    bridge_jump_map = subparsers.add_parser("bridge-jump-map", help="Jump directly to a map coord through the installed Codex bridge mod")
+    bridge_jump_map.add_argument("--col", type=int, required=True)
+    bridge_jump_map.add_argument("--row", type=int, required=True)
+    bridge_jump_map.add_argument("--json-out", type=Path, default=None)
+
+    bridge_tune_card = subparsers.add_parser("bridge-tune-card", help="Tune a card dynamic var through the installed Codex bridge mod")
+    bridge_tune_card.add_argument("--card-type", type=str, required=True)
+    bridge_tune_card.add_argument("--var-name", type=str, required=True)
+    bridge_tune_card.add_argument("--value", type=int, required=True)
+    bridge_tune_card.add_argument("--scope", type=str, choices=["deck", "master_deck", "hand", "draw", "discard", "exhaust", "play", "all_piles"], required=True)
+    bridge_tune_card.add_argument("--mode", type=str, choices=["set", "add"], default="set")
+    bridge_tune_card.add_argument("--json-out", type=Path, default=None)
+
+    bridge_tune_relic = subparsers.add_parser("bridge-tune-relic", help="Tune an owned relic dynamic var through the installed Codex bridge mod")
+    bridge_tune_relic.add_argument("--relic-type", type=str, required=True)
+    bridge_tune_relic.add_argument("--var-name", type=str, required=True)
+    bridge_tune_relic.add_argument("--value", type=int, required=True)
+    bridge_tune_relic.add_argument("--mode", type=str, choices=["set", "add"], default="set")
+    bridge_tune_relic.add_argument("--json-out", type=Path, default=None)
 
     list_game_catalog = subparsers.add_parser("list-game-catalog", help="List available cards, powers, or relics from sts2.dll")
     list_game_catalog.add_argument("--kind", type=str, choices=["cards", "powers", "relics"], required=True)
@@ -510,6 +570,33 @@ def main() -> None:
     args = build_parser().parse_args()
     if hasattr(args, "profile") and isinstance(getattr(args, "profile"), Path):
         args.profile = _resolve_repo_path(getattr(args, "profile"))
+
+    if args.command == "managed-controls-license-status":
+        status = get_managed_controls_license_status(args.command, storage_dir=_repo_root() / ".managed_controls")
+        print(_render_managed_controls_license_status(status))
+        if args.json_out is not None:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(status.to_dict(), indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved managed controls license status to {args.json_out}")
+        return
+
+    if args.command == "activate-managed-controls":
+        try:
+            status = activate_managed_controls(args.license_key, storage_dir=_repo_root() / ".managed_controls")
+        except ManagedControlsLicenseError as exc:
+            print(f"license_error={_safe_console_text(str(exc))}")
+            return
+        print(_render_managed_controls_license_status(status))
+        if args.json_out is not None:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(status.to_dict(), indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved managed controls activation result to {args.json_out}")
+        return
+
+    if args.command != "managed-control-ui":
+        blocked = _require_managed_controls_license_if_needed(args.command)
+        if blocked:
+            return
 
     if args.command == "init-db":
         logger = RunLogger(args.db)
@@ -813,6 +900,43 @@ def main() -> None:
                 encoding="utf-8",
             )
             print(f"Saved managed write to {args.json_out}")
+        return
+
+    if args.command == "set-managed-gold":
+        profile = _load_profile_for_live(args.profile, args)
+        if args.focus:
+            _focus_profile_window(profile)
+            time.sleep(0.10)
+        runtime = create_runtime(profile)
+        try:
+            result = set_managed_player_gold(runtime.target.pid, gold=args.value, workspace_dir=_repo_root())
+            summary = probe_managed_numeric(runtime.target.pid, workspace_dir=_repo_root())
+        finally:
+            runtime.close()
+        print(
+            f"write_field={result.field} previous_gold={result.previous_gold} requested_gold={result.requested_gold} "
+            f"previous_ui_gold={result.previous_ui_gold} wrote_ui_gold={result.wrote_ui_gold}"
+        )
+        print(
+            f"verified_gold={summary.gold} hp={summary.hp}/{summary.max_hp} "
+            f"block={summary.block} energy={summary.energy}/{summary.max_energy}"
+        )
+        for line in _render_managed_probe_lines(summary):
+            print(line)
+        if args.json_out is not None:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(
+                json.dumps(
+                    {
+                        "write": result.to_dict(),
+                        "verified": summary.to_dict(),
+                    },
+                    indent=2,
+                    ensure_ascii=True,
+                ),
+                encoding="utf-8",
+            )
+            print(f"Saved managed gold write to {args.json_out}")
         return
 
     if args.command == "set-managed-energy":
@@ -1178,6 +1302,7 @@ def main() -> None:
                 card_type=args.card_type,
                 destination=args.destination,
                 count=args.count,
+                upgrade_count=args.upgrade_count,
             )
         except ManagedProbeError as exc:
             print(f"bridge_error={_safe_console_text(str(exc))}")
@@ -1195,6 +1320,7 @@ def main() -> None:
             result = send_bridge_replace_master_deck(
                 card_type=args.card_type,
                 count=args.count,
+                upgrade_count=args.upgrade_count,
             )
         except ManagedProbeError as exc:
             print(f"bridge_error={_safe_console_text(str(exc))}")
@@ -1222,6 +1348,96 @@ def main() -> None:
             args.json_out.parent.mkdir(parents=True, exist_ok=True)
             args.json_out.write_text(json.dumps(result.to_dict(), indent=2, ensure_ascii=True), encoding="utf-8")
             print(f"Saved bridge relic result to {args.json_out}")
+        return
+
+    if args.command == "bridge-set-auto-power":
+        try:
+            result = send_bridge_set_auto_power_on_combat_start(
+                power_type=args.power_type,
+                amount=args.value,
+                target=args.target,
+                enemy_index=args.enemy_index,
+            )
+        except ManagedProbeError as exc:
+            print(f"bridge_error={_safe_console_text(str(exc))}")
+            return
+        print(f"bridge_request={json.dumps(result.request, ensure_ascii=True)}")
+        print(f"bridge_response={json.dumps(result.response, ensure_ascii=True)}")
+        if args.json_out is not None:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(result.to_dict(), indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved bridge auto-power result to {args.json_out}")
+        return
+
+    if args.command == "bridge-clear-auto-power":
+        try:
+            result = send_bridge_clear_auto_power_on_combat_start(
+                power_type=args.power_type,
+                target=args.target,
+                enemy_index=args.enemy_index,
+            )
+        except ManagedProbeError as exc:
+            print(f"bridge_error={_safe_console_text(str(exc))}")
+            return
+        print(f"bridge_request={json.dumps(result.request, ensure_ascii=True)}")
+        print(f"bridge_response={json.dumps(result.response, ensure_ascii=True)}")
+        if args.json_out is not None:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(result.to_dict(), indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved bridge auto-power clear result to {args.json_out}")
+        return
+
+    if args.command == "bridge-jump-map":
+        try:
+            result = send_bridge_jump_to_map_coord(col=args.col, row=args.row)
+        except ManagedProbeError as exc:
+            print(f"bridge_error={_safe_console_text(str(exc))}")
+            return
+        print(f"bridge_request={json.dumps(result.request, ensure_ascii=True)}")
+        print(f"bridge_response={json.dumps(result.response, ensure_ascii=True)}")
+        if args.json_out is not None:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(result.to_dict(), indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved bridge map jump result to {args.json_out}")
+        return
+
+    if args.command == "bridge-tune-card":
+        try:
+            result = send_bridge_tune_card_var(
+                card_type=args.card_type,
+                var_name=args.var_name,
+                amount=args.value,
+                scope=args.scope,
+                mode=args.mode,
+            )
+        except ManagedProbeError as exc:
+            print(f"bridge_error={_safe_console_text(str(exc))}")
+            return
+        print(f"bridge_request={json.dumps(result.request, ensure_ascii=True)}")
+        print(f"bridge_response={json.dumps(result.response, ensure_ascii=True)}")
+        if args.json_out is not None:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(result.to_dict(), indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved bridge card tuning result to {args.json_out}")
+        return
+
+    if args.command == "bridge-tune-relic":
+        try:
+            result = send_bridge_tune_relic_var(
+                relic_type=args.relic_type,
+                var_name=args.var_name,
+                amount=args.value,
+                mode=args.mode,
+            )
+        except ManagedProbeError as exc:
+            print(f"bridge_error={_safe_console_text(str(exc))}")
+            return
+        print(f"bridge_request={json.dumps(result.request, ensure_ascii=True)}")
+        print(f"bridge_response={json.dumps(result.response, ensure_ascii=True)}")
+        if args.json_out is not None:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(result.to_dict(), indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved bridge relic tuning result to {args.json_out}")
         return
 
     if args.command == "list-game-catalog":
@@ -1492,7 +1708,12 @@ def main() -> None:
             time.sleep(0.10)
             after_image = adapter.capture_image_retry(attempts=4, backoff_seconds=0.08)
             after_state = adapter.inspect_image(after_image, read_metrics=False)
-            if not played and adapter._battle_progress_made(before_image, after_image):
+            if (
+                not played
+                and not adapter._selection_requires_target(after_image)
+                and adapter._active_card_selection_origin(after_image) is None
+                and adapter._battle_progress_made(before_image, after_image)
+            ):
                 played = ["progress:inferred"]
             after_screen = after_state.screen
             if after_screen == ScreenKind.UNKNOWN and adapter._looks_like_battle_hud(after_image):
@@ -1982,6 +2203,44 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+_MANAGED_CONTROLS_GATED_COMMANDS = {
+    "set-managed-block",
+    "set-managed-gold",
+    "set-managed-energy",
+    "maintain-managed-energy",
+    "maintain-managed-block",
+    "set-managed-power",
+    "alias-managed-powers",
+    "install-bridge-mod",
+    "bridge-apply-power",
+    "bridge-add-card",
+    "bridge-replace-master-deck",
+    "bridge-obtain-relic",
+    "bridge-set-auto-power",
+    "bridge-clear-auto-power",
+    "bridge-jump-map",
+    "bridge-tune-card",
+    "bridge-tune-relic",
+}
+
+
+def _require_managed_controls_license_if_needed(command: str) -> bool:
+    if command not in _MANAGED_CONTROLS_GATED_COMMANDS:
+        return False
+    try:
+        status = ensure_managed_controls_access(command, storage_dir=_repo_root() / ".managed_controls")
+    except ManagedControlsLicenseError as exc:
+        status = get_managed_controls_license_status(command, storage_dir=_repo_root() / ".managed_controls")
+        print(f"license_error={_safe_console_text(str(exc))}")
+        print(_render_managed_controls_license_status(status))
+        return True
+    if not status.unlocked:
+        print(
+            f"license_status=trial_active remaining_seconds={status.remaining_seconds} install_id={status.install_id}"
+        )
+    return False
+
+
 def _resolve_repo_path(path: Path) -> Path:
     if path.is_absolute():
         return path
@@ -2275,6 +2534,15 @@ def _safe_console_text(value: str) -> str:
         return value
     except UnicodeEncodeError:
         return value.encode(encoding, errors="backslashreplace").decode(encoding, errors="replace")
+
+
+def _render_managed_controls_license_status(status) -> str:
+    mode = "unlimited" if status.unlocked else "trial"
+    return (
+        f"license_mode={mode} can_use={status.can_use} expired={status.expired} "
+        f"remaining_seconds={status.remaining_seconds} install_id={status.install_id} "
+        f"message={_safe_console_text(status.message)}"
+    )
 
 
 def _run_bg_game_input_probe(

@@ -175,6 +175,46 @@ class ManagedEnergyWriteResult:
 
 
 @dataclass(frozen=True)
+class ManagedGoldWriteResult:
+    snapshot: "ManagedProbeSnapshot"
+    field: str
+    gold_address: str
+    previous_gold: int
+    requested_gold: int
+    ui_address: str
+    previous_ui_gold: int
+    wrote_ui_gold: bool
+
+    @classmethod
+    def from_payload(cls, payload: object) -> "ManagedGoldWriteResult":
+        data = _require_dict(payload, "managed gold write payload")
+        write = _require_dict(data.get("write"), "managed gold write payload.write")
+        return cls(
+            snapshot=ManagedProbeSnapshot.from_payload(data),
+            field=str(write.get("field", "")),
+            gold_address=str(write.get("gold_address", "")),
+            previous_gold=_parse_int(write.get("previous_gold"), "previous_gold"),
+            requested_gold=_parse_int(write.get("requested_gold"), "requested_gold"),
+            ui_address=str(write.get("ui_address", "")),
+            previous_ui_gold=_parse_int(write.get("previous_ui_gold"), "previous_ui_gold"),
+            wrote_ui_gold=bool(write.get("wrote_ui_gold", False)),
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        payload = self.snapshot.to_dict()
+        payload["write"] = {
+            "field": self.field,
+            "gold_address": self.gold_address,
+            "previous_gold": self.previous_gold,
+            "requested_gold": self.requested_gold,
+            "ui_address": self.ui_address,
+            "previous_ui_gold": self.previous_ui_gold,
+            "wrote_ui_gold": self.wrote_ui_gold,
+        }
+        return payload
+
+
+@dataclass(frozen=True)
 class ManagedPowerSnapshot:
     address: str
     type_name: str
@@ -321,6 +361,10 @@ class ManagedSnapshotProbe:
             args.append(str(max_energy))
         payload = self._run_helper_command(*args)
         return ManagedEnergyWriteResult.from_payload(payload)
+
+    def set_player_gold(self, pid: int, *, gold: int) -> ManagedGoldWriteResult:
+        payload = self._run_helper_command("--set-player-gold", str(pid), str(gold))
+        return ManagedGoldWriteResult.from_payload(payload)
 
     def _run_helper(self, pid: int) -> dict[str, object]:
         return self._run_helper_command("--summary-json", str(pid))
@@ -499,6 +543,15 @@ def set_managed_player_energy(
     workspace_dir: Path | None = None,
 ) -> ManagedEnergyWriteResult:
     return ManagedSnapshotProbe(workspace_dir=workspace_dir).set_player_energy(pid, energy=energy, max_energy=max_energy)
+
+
+def set_managed_player_gold(
+    pid: int,
+    *,
+    gold: int,
+    workspace_dir: Path | None = None,
+) -> ManagedGoldWriteResult:
+    return ManagedSnapshotProbe(workspace_dir=workspace_dir).set_player_gold(pid, gold=gold)
 
 
 def probe_managed_pid(pid: int, *, workspace_dir: Path | None = None) -> dict[str, object]:

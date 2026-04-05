@@ -39,6 +39,7 @@ python -m sts_bot.cli managed-control-ui --profile profiles\windows.example.json
 The UI exposes:
 
 - probe
+- set gold
 - set / maintain block
 - set / maintain energy
 - alias powers
@@ -46,12 +47,16 @@ The UI exposes:
 - install bridge mod
 - apply power through the bridge mod
 - searchable card / power / relic catalogs sourced from `sts2.dll`
-- add a card to the master deck through the bridge mod
-- add a card to the current hand through the bridge mod
+- add upgraded cards to the master deck through the bridge mod
+- add upgraded cards to the current hand through the bridge mod
 - replace the entire master deck through the bridge mod
 - obtain a relic through the bridge mod
+- set or clear combat-start auto power rules
+- jump to a map coordinate
+- tune selected card or relic dynamic vars
 - raw dev console command execution
 - presets for `help`, `help power`, `help block`, `help energy`
+- local license status and unlock-key activation
 
 Notes:
 
@@ -61,6 +66,26 @@ Notes:
 - `Set Existing Power` edits `_amount` only when that power already exists on the target.
 - If a power is missing, the UI now falls back to `Apply Power (Bridge)` instead of only failing.
 - Card / power / relic images are not wired yet. The current catalog is searchable text only.
+- The UI itself can still open after the trial expires, but gated actions will ask for activation.
+
+## Trial And Unlock
+
+Managed-control features are now behind a soft local gate:
+
+- first use starts a 30-minute local trial
+- after expiry, managed writes and bridge commands are blocked
+- activate unlimited mode with:
+
+```powershell
+python -m sts_bot.cli managed-controls-license-status
+python -m sts_bot.cli activate-managed-controls --license-key <KEY>
+```
+
+Notes:
+
+- local state is stored under `.managed_controls\license_state.json`
+- this is a soft local paywall, not hardened DRM
+- replace the validator before treating it as a serious commercial license system
 
 ## Bridge Mod Path
 
@@ -114,6 +139,7 @@ Creates a fresh card in-process and adds it to either the player's master deck o
 ```powershell
 python -m sts_bot.cli bridge-add-card --card-type Whirlwind --destination deck
 python -m sts_bot.cli bridge-add-card --card-type Whirlwind --destination hand --count 2
+python -m sts_bot.cli bridge-add-card --card-type Whirlwind --destination hand --count 1 --upgrade-count 2
 python -m sts_bot.cli bridge-add-card --card-type Bash --destination hand
 python -m sts_bot.cli bridge-add-card --card-type MegaCrit.Sts2.Core.Models.Cards.Whirlwind --destination deck
 ```
@@ -131,6 +157,7 @@ Removes the current master deck and replaces it with the requested card type. If
 ```powershell
 python -m sts_bot.cli bridge-replace-master-deck --card-type Whirlwind
 python -m sts_bot.cli bridge-replace-master-deck --card-type Whirlwind --count 10
+python -m sts_bot.cli bridge-replace-master-deck --card-type Whirlwind --count 10 --upgrade-count 2
 python -m sts_bot.cli bridge-replace-master-deck --card-type Bash --count 10
 ```
 
@@ -154,6 +181,32 @@ Notes:
 - This route is intended to create a fresh power in-process instead of editing an existing `_amount`.
 - Hand add has been live-verified.
 - Deck add, deck replace, and relic obtain still need more live validation across screen transitions.
+
+### `bridge-set-auto-power`
+
+Stores a rule that reapplies a power at combat start.
+
+```powershell
+python -m sts_bot.cli bridge-set-auto-power --power-type StrengthPower --value 100 --target player
+python -m sts_bot.cli bridge-clear-auto-power --power-type StrengthPower --target player
+```
+
+### `bridge-jump-map`
+
+Jumps directly to a specific map coordinate.
+
+```powershell
+python -m sts_bot.cli bridge-jump-map --col 2 --row 8
+```
+
+### `bridge-tune-card` and `bridge-tune-relic`
+
+Adjusts selected dynamic vars on cards or owned relics.
+
+```powershell
+python -m sts_bot.cli bridge-tune-card --card-type Whirlwind --var-name Damage --value 99 --scope hand
+python -m sts_bot.cli bridge-tune-relic --relic-type FestivePopper --var-name Damage --value 99
+```
 
 ## Dev Console Path
 
@@ -255,6 +308,15 @@ Writes the current player `Creature._block` value once.
 ```powershell
 python -m sts_bot.cli set-managed-block --profile profiles\windows.example.json --value 25
 python -m sts_bot.cli set-managed-block --profile profiles\windows.example.json --value 100 --json-out tmp\managed_block_write.json
+```
+
+### `set-managed-gold`
+
+Writes the player's current gold once. This uses the managed probe path and updates both `Player._gold` and the current top-bar mirror when available.
+
+```powershell
+python -m sts_bot.cli set-managed-gold --profile profiles\windows.example.json --value 999
+python -m sts_bot.cli set-managed-gold --profile profiles\windows.example.json --value 999 --json-out tmp\managed_gold_write.json
 ```
 
 ### `maintain-managed-block`

@@ -1,152 +1,64 @@
-# STS Autoplayer Lab
+# STS Managed Controls
 
-Local research and tooling project for Slay the Spire 2.
+Local single-player runtime toolkit for Slay the Spire 2. Inspect live managed state, change gold/block/energy, apply powers, add cards, obtain relics, and run bridge-based in-process actions from a desktop UI.
 
-The repo currently has two practical tracks:
+![STS Managed Controls UI](docs/release/gui.png)
 
-- live automation and state observation
-- `STS Managed Controls`, a local desktop control panel for in-process card, power, relic, block, and energy manipulation
+## What This Release Is
 
-If this project is published publicly, the cleanest positioning is not "cheat pack" but:
+This public release is centered on `STS Managed Controls`.
 
-- single-player modding and debugging toolkit
-- local sandbox for testing interactions, balance, and content mods
-- research environment for state probing and UI automation
+It is intended for:
 
-That framing is materially better for GitHub, Nexus Mods, Discord, and Reddit than a trainer-first pitch.
+- single-player sandbox use
+- mod authors
+- testers and balance iteration
+- debugging live game state without OCR-only workflows
 
-## Managed Controls
+It is **not** being released primarily as an autoplay product.
 
-The fastest way to try the current local runtime controls is:
+There is still automation and live-input research in this source tree, but that work is experimental and should be treated as a separate track. For public distribution, the main product is the managed-controls toolset.
 
-```powershell
-python -m sts_bot.cli managed-control-ui --profile profiles\windows.example.json
-```
+## Core Features
 
-The current UI supports:
+- Probe live state through the managed CLR snapshot path.
+- Read floor, ascension, HP, block, gold, and energy without OCR.
+- Set gold directly.
+- Set or maintain block.
+- Set or maintain energy.
+- Apply powers through the bridge mod.
+- Search cards, powers, and relics discovered from `sts2.dll`.
+- Add cards to hand or deck.
+- Add upgraded cards with `upgrade_count`.
+- Replace the master deck.
+- Obtain relics.
+- Set combat-start auto powers.
+- Jump to map coordinates.
+- Tune selected card or relic dynamic vars.
+- Run everything from a local GUI instead of typing repeated commands.
 
-- probe current managed state
-- set or maintain block
-- set or maintain energy
-- create or apply powers through the bridge mod
-- search cards, powers, and relics from `sts2.dll`
-- add cards to hand or deck
-- replace the master deck
+## Current Status
+
+Stable enough to ship as the main surface:
+
+- managed control UI
+- probe-managed
+- gold / block / energy controls
+- bridge power apply
+- bridge add card to hand
+- searchable card / power / relic catalog
+
+Still experimental:
+
+- add card to deck
+- replace master deck
 - obtain relics
+- map jump
+- dynamic-var tuning
 
-Detailed operator notes are in `docs/workstreams/managed_runtime_controls.md`.
+## Quick Start
 
-## Public Release Direction
-
-If this repo is prepared for a public release, the strongest channel mix is:
-
-- GitHub for source, issues, and releases
-- Nexus Mods for discovery and binary distribution
-- Discord / Reddit for announcements and support
-
-The most realistic monetization path is:
-
-- free core release
-- optional support links such as GitHub Sponsors or Ko-fi
-- later, only if justified, a separate "pro" workflow layer for mod authors
-
-Trying to force an underground paid-cheat positioning is possible, but the audience is smaller and the reputation cost is much higher.
-
-Release planning notes and listing copy are in:
-
-- `docs/release/public_release_checklist.md`
-- `docs/release/listing_copy.md`
-
-## Architecture
-
-The bot is now split into:
-
-- decision/state code
-  - policy, analysis, reward evaluation, battle helpers
-- window/runtime code
-  - `WindowLocator`
-  - `TargetWindow`
-  - `CoordinateTransform`
-- capture backends
-  - `WgcCaptureBackend`
-  - `DxgiDuplicationCaptureBackend`
-  - `Win32WindowCaptureBackend`
-  - `VisibleRegionCaptureBackend`
-  - `LegacyForegroundCaptureBackend`
-- input backends
-  - `WindowMessageInputBackend`
-  - `LegacyForegroundInputBackend`
-
-The main adapter keeps using the existing screen recognition and action selection flow. It now consumes injected capture/input backends instead of directly calling global desktop capture or global input APIs.
-
-## Default Behavior
-
-Default runtime selection:
-
-- capture backend: `auto`
-- input backend: `auto`
-- `auto` capture order:
-  - `wgc`
-  - `dxgi`
-  - `win32_window`
-  - `visible_region`
-  - `legacy` only if `allow_foreground_fallback=true`
-- `auto` input order:
-  - `window_messages`
-  - `legacy` only if `allow_foreground_fallback=true`
-
-Current repo build status:
-
-- `wgc`: implemented through the optional `windows-capture` package; otherwise reports unsupported
-- `dxgi`: declared but not bundled here, reports unsupported
-- `win32_window`: implemented, background-capable for visible windows
-- `visible_region`: implemented, captures only the target client region via screen `BitBlt` while the window remains visible
-- `window_messages`: implemented, background-capable transport
-- `legacy`: retained only for explicit opt-in comparisons
-
-Current optional capture add-on:
-
-- If the Python package `windows-capture` is installed, `wgc` becomes available and `auto` may select it first.
-- This path uses Windows Graphics Capture through that package and is intended for non-foreground / occluded windows.
-- Minimized or fully hidden behavior is still not guaranteed here and should be treated as unverified.
-
-No silent fallback is performed from message-based or background capture paths to foreground/global input.
-
-## Background Capability Model
-
-Supported by design:
-
-- capture while another window stays in front
-- message-based input without moving the global cursor
-- client-coordinate transforms that track window size changes
-
-Not guaranteed:
-
-- minimized windows
-- fully occluded or non-presenting windows
-- games that ignore `WM_*` input even though the backend can deliver it
-
-The repo reports these as capability/diagnostic facts instead of silently switching to global input.
-
-## Legacy Paths
-
-The following are legacy/debug-only and are not part of the normal path:
-
-- `pyautogui`
-- `pydirectinput`
-- `SendInput`
-- `mouse_event`
-- `keybd_event`
-- `ImageGrab`
-- foreground activation helpers in `windows_api.py`
-
-They remain available only through `LegacyForegroundCaptureBackend` / `LegacyForegroundInputBackend`, both of which are:
-
-- `foreground_only=true`
-- disabled by default
-- intended only for explicit comparison/debugging
-
-## Setup
+Create the environment:
 
 ```powershell
 python -m venv .venv
@@ -155,259 +67,120 @@ pip install -e .
 pip install pytesseract
 ```
 
-Install Tesseract OCR as well. The code auto-detects:
-
-- `C:\Program Files\Tesseract-OCR\tesseract.exe`
-- `C:\Program Files (x86)\Tesseract-OCR\tesseract.exe`
-
-## Profile Settings
-
-`profiles/windows.example.json` now includes backend/runtime controls:
-
-- `capture_backend`
-  - `auto | wgc | dxgi | win32 | visible_region | legacy`
-- `input_backend_name`
-  - `auto | window_messages | legacy`
-- `legacy_input_backend`
-  - existing legacy transport selector such as `combined`, `sendinput_scan`, `pyautogui`
-- `startup_sequence_labels`
-  - ordered startup actions used by `startup-sequence-live` and `hybrid-run-live`
-- `scene_input_backends`
-  - per-screen backend overrides such as `menu=legacy`, `battle=window_messages`
-- `target_process_name`
-- `target_title_regex`
-- `target_class_name`
-- `dry_run`
-- `verbose_diagnostics`
-- `allow_foreground_fallback`
-
-Environment overrides:
-
-- `STS_BOT_CAPTURE_BACKEND`
-- `STS_BOT_INPUT_BACKEND`
-- `STS_BOT_TARGET_PROCESS`
-- `STS_BOT_TARGET_TITLE_REGEX`
-- `STS_BOT_TARGET_CLASS`
-- `STS_BOT_DRY_RUN`
-- `STS_BOT_ALLOW_FOREGROUND_FALLBACK`
-
-## Diagnostics
-
-Capability report:
-
-```powershell
-python -m sts_bot.cli capability-report --profile profiles\windows.example.json
-```
-
-Background capture smoke:
-
-```powershell
-python -m sts_bot.cli bg-capture-smoke --profile profiles\windows.example.json --frames 120 --timeout-ms 250
-```
-
-This reports:
-
-- target HWND/title/class/pid
-- selected capture/input backends
-- background support flags
-- sample capture success and blank/non-blank status
-- frame count and average capture interval
-- whether the foreground title changed
-- whether the cursor moved
-
-Background input smoke against a local Win32 test window:
-
-```powershell
-python -m sts_bot.cli bg-input-smoke --timeout-ms 6000
-```
-
-This verifies message-based click/key delivery without changing the foreground window or moving the cursor.
-
-Inspect the real game window and GUI-thread state:
-
-```powershell
-python -m sts_bot.cli inspect-window --profile profiles\windows.example.json
-```
-
-Probe one background input against the live game:
-
-```powershell
-python -m sts_bot.cli bg-game-input-probe --profile profiles\windows.example.json --key enter
-python -m sts_bot.cli bg-game-input-probe --profile profiles\windows.example.json --label "Single Play"
-python -m sts_bot.cli bg-game-input-probe --profile profiles\windows.example.json --label "Single Play" --window-message-delivery post
-```
-
-These commands report the chosen backend, foreground/cursor stability, message target HWNDs, and whether a meaningful visual scene change was observed.
-
-Run a background input matrix across delivery/activation combinations:
-
-```powershell
-python -m sts_bot.cli bg-game-input-matrix --profile profiles\windows.example.json --key enter
-python -m sts_bot.cli bg-game-input-matrix --profile profiles\windows.example.json --label "Single Play"
-```
-
-This is useful when a scene accepts background capture but the game may still reject `WM_*` input. The command prints a compact table of `delivery`, `activation`, `frame_diff`, and `observed_effect`.
-
-Run an explicit foreground bootstrap for startup scenes:
-
-```powershell
-python -m sts_bot.cli startup-sequence-live --profile profiles\windows.example.json --allow-foreground-fallback --focus-window
-python -m sts_bot.cli bootstrap-live --profile profiles\windows.example.json --allow-foreground-fallback --focus-window --stop-screen battle
-```
-
-These commands are intentionally opt-in. They use the legacy foreground path to get through scenes that currently reject background input, then you can switch back to the default background-capable path.
-
-Run the mixed-mode path end-to-end:
-
-```powershell
-python -m sts_bot.cli hybrid-run-live --profile profiles\windows.example.json --allow-foreground-fallback --focus-window --max-steps 120
-```
-
-This command uses `startup_sequence_labels` plus `scene_input_backends` from the profile. In the current example profile, startup scenes and battle are `gamepad`-first, while `neow_dialog`, `continue`, map confirm, and `reward_gold_only` confirm use `window_messages`.
-
-Dry-run against the real game:
-
-```powershell
-python -m sts_bot.cli game-dry-run --profile profiles\windows.example.json
-```
-
-This resolves the target window and selected action, then prints the intended backend/target without sending game input.
-
-## Live Read-Only Flow
-
-Write a starter profile:
+Write or reuse a live profile:
 
 ```powershell
 python -m sts_bot.cli write-example-profile
 ```
 
-Probe the current live state:
+Launch the control panel:
 
 ```powershell
-python -m sts_bot.cli probe-live --profile profiles\windows.example.json --show-anchor-scores --save-screenshot captures\probe.png
+python -m sts_bot.cli managed-control-ui --profile profiles\windows.example.json
 ```
 
-Probe a saved screenshot offline:
+Useful CLI entrypoints:
 
 ```powershell
-python -m sts_bot.cli probe-image --profile profiles\windows.example.json --input observations\live_session\frames\0016_unknown.png --show-anchor-scores
+python -m sts_bot.cli probe-managed --profile profiles\windows.example.json
+python -m sts_bot.cli set-managed-gold --profile profiles\windows.example.json --value 999
+python -m sts_bot.cli set-managed-block --profile profiles\windows.example.json --value 100
+python -m sts_bot.cli set-managed-energy --profile profiles\windows.example.json --value 10 --max-value 10
+python -m sts_bot.cli list-game-catalog --kind cards --query whirlwind
 ```
 
-Passively watch a live manual session:
+## Bridge Workflow
+
+Install the local bridge mod:
 
 ```powershell
-python -m sts_bot.cli watch-live --profile profiles\windows.example.json --seconds 120 --interval 1.0 --jsonl-out observations\live.jsonl --capture-dir observations\frames --only-on-change
+python -m sts_bot.cli install-bridge-mod
 ```
 
-Summarize a saved observation log:
+Restart the game once after installation, then use bridge commands such as:
 
 ```powershell
-python -m sts_bot.cli summarize-observations --input observations\live.jsonl
+python -m sts_bot.cli bridge-apply-power --power-type StrengthPower --value 100 --target player
+python -m sts_bot.cli bridge-add-card --card-type Whirlwind --destination hand --count 1 --upgrade-count 1
+python -m sts_bot.cli bridge-set-auto-power --power-type PlatingPower --value 999 --target player
+python -m sts_bot.cli bridge-obtain-relic --relic-type Anchor --count 1
 ```
 
-Capture the current game window:
+## Trial And Unlock
+
+The current public-facing managed-controls build assumes a soft local trial flow:
+
+- first use starts a 30-minute local trial
+- after expiry, managed write and bridge actions are blocked
+- unlock unlimited mode with a local activation key
+
+Commands:
 
 ```powershell
-python -m sts_bot.cli capture-live --profile profiles\windows.example.json --output captures\screen.png
+python -m sts_bot.cli managed-controls-license-status
+python -m sts_bot.cli activate-managed-controls --license-key <KEY>
 ```
 
-Annotate a screenshot:
+This is a soft local gate, not hardened DRM. It is suitable for small-scale release experiments, not for serious license enforcement.
 
-```powershell
-python -m sts_bot.cli annotate-live --profile profiles\windows.example.json --output captures\annotated.png
-```
+## Troubleshooting
 
-Crop a template from a screenshot:
+Bridge pipe unavailable:
 
-```powershell
-python -m sts_bot.cli crop-template --input captures\screen.png --rect 1244,756,174,92 --output profiles\templates\battle_anchor.png
-```
+- install the bridge mod
+- restart the game
+- confirm the game loaded the mod
 
-## Live Input Flow
+Bridge DLL locked during install:
 
-Run the live adapter:
+- fully close the game
+- run `install-bridge-mod` again
 
-```powershell
-python -m sts_bot.cli run-live --profile profiles\windows.example.json --episodes 1 --max-steps 300
-```
+No profile found:
 
-One-step action:
+- use an absolute path, or run from the repo root
 
-```powershell
-python -m sts_bot.cli step-live --profile profiles\windows.example.json
-```
+Power not found:
 
-Raw key/click injection:
+- `set-managed-power` only edits an already-existing power
+- use `bridge-apply-power` when you need in-process creation
 
-```powershell
-python -m sts_bot.cli inject-live --profile profiles\windows.example.json --key enter
-```
+## Safety
 
-Battle helpers:
+Use this on local single-player runs.
 
-```powershell
-python -m sts_bot.cli play-card-live --profile profiles\windows.example.json --slot 1
-python -m sts_bot.cli play-turn-live --profile profiles\windows.example.json
-python -m sts_bot.cli inject-gamepad-live --profile profiles\windows.example.json --buttons dpad_down,a
-```
+- Back up saves if you care about them.
+- Modded runs and experimental bridge actions can leave saves or combat state in unusual conditions.
+- Game updates may break reflection-based bridge calls.
 
-Reward scenes are now split into `reward_menu`, `reward_cards`, and `reward_gold_only`. The current default flow is:
+## Documentation
 
-1. Take gold if a menu row exists.
-2. Open the card reward panel.
-3. On lone-gold follow-up screens, use `dpad_down` to create focus, then `Enter` via `window_messages`.
+Operator notes:
 
-Decision traces now persist a compact state snapshot plus a human-readable reasoning summary for each logged step. You can inspect the latest run with:
+- `docs/workstreams/managed_runtime_controls.md`
 
-```powershell
-python -m sts_bot.cli trace-run --db data\runs.sqlite3 --json-out reports\latest_trace.json
-```
+Release planning:
 
-This is intended to answer "why did the bot pick this card / path / reward?" without opening SQLite manually.
+- `docs/release/release_runbook.md`
+- `docs/release/public_release_checklist.md`
+- `docs/release/listing_copy.md`
 
-Legacy foreground backends are only used if you explicitly opt in:
+Bundled media:
 
-```powershell
-python -m sts_bot.cli capability-report --profile profiles\windows.example.json --allow-foreground-fallback
-python -m sts_bot.cli inject-live --profile profiles\windows.example.json --backend legacy --allow-foreground-fallback --key enter
-```
+- `docs/release/gui.png`
+- `docs/release/Slay the Spire 2 - 2026-04-03 21-21-07.mp4`
+- `docs/release/Slay the Spire 2 - 2026-04-05 18-24-09.mp4`
 
-Known mixed-mode workflow in current testing:
+## Public Positioning
 
-1. Use `startup-sequence-live` with `--allow-foreground-fallback --focus-window` to move through `menu -> mode_select -> character_select -> neow`.
-2. Once the game reaches `battle`, switch back to default `window_messages`.
-3. Use `play-turn-live --backend window_messages` or `step-live --backend window_messages`.
-4. Or let `hybrid-run-live` pick those backends automatically from the profile.
+The clean public framing is:
 
-## Known Limitations
+- local modding and debugging toolkit
+- single-player runtime control panel
+- sandbox for testing cards, powers, relics, and combat setups
 
-- Background capture now prefers WGC when available. `visible_region` remains a fallback.
-- `WindowMessageInputBackend` can deliver input in the background, but the game may ignore some or all `WM_*` messages.
-- Current title-screen testing shows background capture working with `visible_region`, while message-based `Enter` and `Single Play` probes still produce `observed_effect=false`.
-- Current title-screen matrix testing also shows `send/post x none/key/click/all` all remaining below the visual-change threshold.
-- In contrast, current battle-scene testing shows background `window_messages` accepted: `bg-game-input-matrix --key 1` and `--key e` both produced `observed_effect=true`, and `play-turn-live --backend window_messages` executed combat actions.
-- Reward handling is now explicitly split into `reward_menu`, `reward_cards`, and `reward_gold_only`; saved-frame probes confirm those classifications.
-- Battle is controller-first now, but some live `play-turn-live` runs can still hang longer than intended in complex combat states.
-- `wgc` now has a concrete implementation path when `windows-capture` is installed, but fully occluded / minimized behavior is not yet fully characterized in this repo.
-- `Win32WindowCaptureBackend` is background-capable for visible windows in current testing. Minimized/fully hidden behavior is not guaranteed here.
-- `VisibleRegionCaptureBackend` works only while the target client region stays visible and unobscured.
-- In current testing, `auto` often selects `visible_region` on title/menu scenes because `PrintWindow` can return black frames there.
-- OCR quality for HUD values is still incomplete.
-- Some screen types remain calibrated with one-off anchors.
-- `game_dry_run` can still report a blank-frame failure if the capture backend cannot retrieve a valid client image at that moment.
+That positioning is better for GitHub, Nexus, Discord, and Reddit than leading with autoplay or trainer language.
 
-## Unsupported / Fallback Rules
+## Repository Note
 
-The runtime returns unsupported instead of silently degrading when:
-
-- `capture_backend=wgc` but no WGC helper is available
-- `capture_backend=dxgi` but no DXGI helper is available
-- `capture_backend=legacy` while `allow_foreground_fallback=false`
-- `input_backend_name=legacy` while `allow_foreground_fallback=false`
-- an unknown backend name is requested
-
-Legacy foreground fallback is available only when explicitly enabled. It is not the default path.
-
-## Calibration Model
-
-Template image guidance is in `profiles/templates/README.md`.
+The current repository still contains autoplay and automation research code. For public messaging, that work should be treated as separate and experimental. If you later want a cleaner product split, moving autoplay into a different repository is a good idea.

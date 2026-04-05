@@ -45,6 +45,10 @@ Steam Community can be used as a secondary pointer, but it should not be the pri
   - the control UI
   - hand add working
   - power apply working
+- Current bundled media:
+  - `docs/release/gui.png`
+  - `docs/release/Slay the Spire 2 - 2026-04-03 21-21-07.mp4`
+  - `docs/release/Slay the Spire 2 - 2026-04-05 18-24-09.mp4`
 - Mark unstable features explicitly.
 
 ## Release Readme Requirements
@@ -81,7 +85,11 @@ Reasonable support channels:
 - Ko-fi
 - Patreon, only if updates become regular enough
 
-Do not gate the core bridge/control path behind payment at first. The current audience is too small for aggressive paywalling to outperform goodwill and open distribution.
+If you ship the current trial flow, state it plainly:
+
+- managed-control features start with a 30-minute local trial
+- unlimited access requires an unlock key
+- the current validator is a soft local gate and should be replaced before treating it as strong commercial licensing
 
 ## Suggested Public Scope For v0.1
 

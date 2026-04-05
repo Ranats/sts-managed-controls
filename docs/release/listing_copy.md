@@ -2,7 +2,7 @@
 
 ## Short Description
 
-Local control panel and runtime toolkit for Slay the Spire 2. Probe live state, grant powers, add cards, manipulate energy and block, and test mod interactions through a bridge-based in-process workflow.
+Local control panel and runtime toolkit for Slay the Spire 2. Probe live state, set gold/block/energy, grant powers, add upgraded cards, and test mod interactions through a bridge-based in-process workflow.
 
 ## GitHub Description
 
@@ -21,11 +21,11 @@ It is aimed at:
 Current capabilities include:
 
 - live managed probe
-- block and energy control
+- gold, block, and energy control
 - power application through the bridge mod
 - searchable card / power / relic catalogs
-- adding cards to the current hand
-- experimental deck and relic operations
+- adding upgraded cards to the current hand
+- experimental deck, relic, map-jump, and tuning operations
 
 ## First Paragraph
 
@@ -36,7 +36,9 @@ This project started as a local Slay the Spire 2 automation lab and now includes
 - Probe floor, ascension, HP, block, gold, and energy without OCR.
 - Search live-discovered cards, powers, and relics from `sts2.dll`.
 - Apply powers through an in-process bridge path.
-- Add cards to the current hand.
+- Add upgraded cards to the current hand.
+- Set gold directly from the desktop UI or CLI.
+- Configure combat-start auto powers for fast testing loops.
 - Maintain block or energy automatically for testing scenarios.
 - Run from a local GUI instead of repeatedly typing commands.
 
@@ -45,10 +47,20 @@ This project started as a local Slay the Spire 2 automation lab and now includes
 - Add cards to the master deck.
 - Replace the entire master deck.
 - Obtain relics through the bridge mod.
+- Jump to a specific map coordinate.
+- Tune selected card or relic dynamic vars.
 
 ## Support Copy
 
-If this toolkit saves you time while testing or building mods, optional support links can help fund compatibility updates, maintenance, and UI improvements. The base tool should remain freely accessible.
+The public build can ship with a 30-minute managed-controls trial and a local unlock key for unlimited use. Optional support links can still help fund compatibility updates, maintenance, and UI improvements. Be explicit that the current unlock flow is a soft local gate rather than hardened DRM.
+
+## Media Notes
+
+Suggested media order on GitHub or Nexus:
+
+- lead screenshot: `docs/release/gui.png`
+- follow-up video: `docs/release/Slay the Spire 2 - 2026-04-05 18-24-09.mp4`
+- secondary video: `docs/release/Slay the Spire 2 - 2026-04-03 21-21-07.mp4`
 
 ## Safety Note
 

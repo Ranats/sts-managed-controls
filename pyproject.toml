@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sts-autoplayer-lab"
-version = "0.1.0"
-description = "Autoplay and build-analysis scaffold for Slay the Spire style runs."
+name = "sts-managed-controls"
+version = "0.1.1"
+description = "Local single-player runtime toolkit for Slay the Spire 2 managed controls."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -18,6 +18,7 @@ dependencies = [
 
 [project.scripts]
 sts-lab = "sts_bot.cli:main"
+sts-managed-controls = "sts_bot.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

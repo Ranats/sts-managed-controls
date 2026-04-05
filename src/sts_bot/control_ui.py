@@ -12,20 +12,32 @@ from sts_bot.config import CalibrationProfile
 from sts_bot.dev_console import enable_full_console, run_dev_console_command
 from sts_bot.game_catalog import CatalogBundle, CatalogEntry, filter_catalog, load_catalog_bundle
 from sts_bot.io_runtime import create_runtime
+from sts_bot.managed_controls_license import (
+    activate_managed_controls,
+    ensure_managed_controls_access,
+    get_managed_controls_license_status,
+    ManagedControlsLicenseError,
+)
 from sts_bot.managed_probe import (
     alias_managed_powers,
     ManagedProbeError,
     probe_managed_numeric,
     set_managed_player_block,
     set_managed_player_energy,
+    set_managed_player_gold,
     set_managed_power_amount,
 )
 from sts_bot.mod_bridge import (
     install_bridge_mod,
     send_bridge_add_card,
-    send_bridge_obtain_relic,
     send_bridge_apply_power,
+    send_bridge_clear_auto_power_on_combat_start,
+    send_bridge_jump_to_map_coord,
     send_bridge_replace_master_deck,
+    send_bridge_obtain_relic,
+    send_bridge_set_auto_power_on_combat_start,
+    send_bridge_tune_card_var,
+    send_bridge_tune_relic_var,
 )
 
 
@@ -43,18 +55,33 @@ class ManagedControlWindow:
         self._energy_maintain_thread: threading.Thread | None = None
 
         self.profile_var = tk.StringVar(value=str(self._profile_path))
+        self.license_status_var = tk.StringVar(value="License: checking...")
+        self.license_install_id_var = tk.StringVar(value="")
+        self.license_key_var = tk.StringVar(value="")
         self.block_var = tk.StringVar(value="100")
         self.block_interval_var = tk.StringVar(value="0.2")
+        self.gold_var = tk.StringVar(value="999")
         self.energy_var = tk.StringVar(value="100")
         self.max_energy_var = tk.StringVar(value="100")
         self.energy_interval_var = tk.StringVar(value="0.15")
         self.power_target_var = tk.StringVar(value="player")
+        self.power_enemy_index_var = tk.StringVar(value="0")
         self.power_type_var = tk.StringVar(value="StrengthPower")
         self.power_value_var = tk.StringVar(value="100")
         self.card_type_var = tk.StringVar(value="Whirlwind")
         self.card_count_var = tk.StringVar(value="1")
+        self.card_upgrade_var = tk.StringVar(value="0")
+        self.card_var_name_var = tk.StringVar(value="Damage")
+        self.card_var_scope_var = tk.StringVar(value="hand")
+        self.card_var_mode_var = tk.StringVar(value="set")
+        self.card_var_value_var = tk.StringVar(value="99")
         self.relic_type_var = tk.StringVar(value="Anchor")
         self.relic_count_var = tk.StringVar(value="1")
+        self.relic_var_name_var = tk.StringVar(value="Damage")
+        self.relic_var_mode_var = tk.StringVar(value="set")
+        self.relic_var_value_var = tk.StringVar(value="99")
+        self.map_col_var = tk.StringVar(value="0")
+        self.map_row_var = tk.StringVar(value="0")
         self.alias_source_var = tk.StringVar(value="enemy")
         self.alias_dest_var = tk.StringVar(value="player")
         self.catalog_query_var = tk.StringVar(value="")
@@ -76,7 +103,8 @@ class ManagedControlWindow:
         self._build()
         self._root.protocol("WM_DELETE_WINDOW", self._on_close)
         self._root.after(100, self._drain_logs)
-        self._run_async(self._refresh_catalogs)
+        self._refresh_license_status()
+        self._run_async(self._refresh_catalogs, requires_license=False)
 
     def run(self) -> None:
         self._root.mainloop()
@@ -110,6 +138,9 @@ class ManagedControlWindow:
         ttk.Entry(frame, textvariable=self.energy_interval_var, width=10).grid(row=3, column=6, sticky=tk.W, pady=4)
         ttk.Button(frame, text="Start Maintain Energy", command=self._start_maintain_energy).grid(row=4, column=5, sticky="ew", pady=4)
         ttk.Button(frame, text="Stop Maintain Energy", command=self._stop_maintain_energy).grid(row=4, column=6, sticky="ew", pady=4)
+        ttk.Label(frame, text="Gold").grid(row=4, column=0, sticky=tk.W, pady=4)
+        ttk.Entry(frame, textvariable=self.gold_var, width=12).grid(row=4, column=1, sticky=tk.W, pady=4)
+        ttk.Button(frame, text="Set Gold", command=lambda: self._run_async(self._set_gold)).grid(row=4, column=2, sticky="ew", pady=4)
 
         ttk.Label(frame, text="Alias Source").grid(row=5, column=0, sticky=tk.W, pady=4)
         ttk.Combobox(frame, textvariable=self.alias_source_var, values=("player", "enemy"), width=10, state="readonly").grid(row=5, column=1, sticky=tk.W, pady=4)
@@ -125,70 +156,102 @@ class ManagedControlWindow:
         ttk.Entry(frame, textvariable=self.power_value_var, width=12).grid(row=6, column=5, sticky=tk.W, pady=4)
         ttk.Button(frame, text="Set Existing Power", command=lambda: self._run_async(self._set_power)).grid(row=6, column=6, sticky="ew", pady=4)
 
+        ttk.Label(frame, text="Enemy Index").grid(row=7, column=0, sticky=tk.W, pady=4)
+        ttk.Entry(frame, textvariable=self.power_enemy_index_var, width=10).grid(row=7, column=1, sticky=tk.W, pady=4)
         ttk.Button(frame, text="Install Bridge Mod", command=lambda: self._run_async(self._install_bridge_mod)).grid(row=7, column=4, sticky="ew", pady=4)
         ttk.Button(frame, text="Grant Strength (Bridge)", command=lambda: self._run_async(self._grant_strength)).grid(row=7, column=5, sticky="ew", pady=4)
         ttk.Button(frame, text="Apply Power (Bridge)", command=lambda: self._run_async(self._apply_power_bridge)).grid(row=7, column=6, sticky="ew", pady=4)
+        ttk.Button(frame, text="Set Auto Power", command=lambda: self._run_async(self._set_auto_power_bridge)).grid(row=7, column=2, sticky="ew", pady=4)
+        ttk.Button(frame, text="Clear Auto Power", command=lambda: self._run_async(self._clear_auto_power_bridge)).grid(row=7, column=3, sticky="ew", pady=4)
 
         ttk.Label(frame, text="Card Type").grid(row=8, column=0, sticky=tk.W, pady=4)
         ttk.Entry(frame, textvariable=self.card_type_var, width=24).grid(row=8, column=1, sticky="ew", pady=4)
         ttk.Label(frame, text="Count").grid(row=8, column=2, sticky=tk.E, pady=4)
         ttk.Entry(frame, textvariable=self.card_count_var, width=12).grid(row=8, column=3, sticky=tk.W, pady=4)
-        ttk.Button(frame, text="Add Card To Deck", command=lambda: self._run_async(self._add_card_to_deck_bridge)).grid(row=8, column=4, sticky="ew", pady=4)
-        ttk.Button(frame, text="Add Card To Hand", command=lambda: self._run_async(self._add_card_to_hand_bridge)).grid(row=8, column=5, sticky="ew", pady=4)
-        ttk.Button(frame, text="Replace Deck", command=lambda: self._run_async(self._replace_master_deck_bridge)).grid(row=8, column=6, sticky="ew", pady=4)
+        ttk.Label(frame, text="Upgrades").grid(row=8, column=4, sticky=tk.E, pady=4)
+        ttk.Entry(frame, textvariable=self.card_upgrade_var, width=10).grid(row=8, column=5, sticky=tk.W, pady=4)
+        ttk.Button(frame, text="Add Card To Deck", command=lambda: self._run_async(self._add_card_to_deck_bridge)).grid(row=8, column=6, sticky="ew", pady=4)
+        ttk.Button(frame, text="Add Card To Hand", command=lambda: self._run_async(self._add_card_to_hand_bridge)).grid(row=9, column=5, sticky="ew", pady=4)
+        ttk.Button(frame, text="Replace Deck", command=lambda: self._run_async(self._replace_master_deck_bridge)).grid(row=9, column=6, sticky="ew", pady=4)
 
-        ttk.Label(frame, text="Relic Type").grid(row=9, column=0, sticky=tk.W, pady=4)
-        ttk.Entry(frame, textvariable=self.relic_type_var, width=24).grid(row=9, column=1, sticky="ew", pady=4)
-        ttk.Label(frame, text="Relic Count").grid(row=9, column=2, sticky=tk.E, pady=4)
-        ttk.Entry(frame, textvariable=self.relic_count_var, width=12).grid(row=9, column=3, sticky=tk.W, pady=4)
-        ttk.Button(frame, text="Obtain Relic (Bridge)", command=lambda: self._run_async(self._obtain_relic_bridge)).grid(row=9, column=4, columnspan=3, sticky="ew", pady=4)
+        ttk.Label(frame, text="Card Var").grid(row=9, column=0, sticky=tk.W, pady=4)
+        ttk.Entry(frame, textvariable=self.card_var_name_var, width=12).grid(row=9, column=1, sticky="ew", pady=4)
+        ttk.Combobox(frame, textvariable=self.card_var_scope_var, values=("deck", "master_deck", "hand", "draw", "discard", "exhaust", "play", "all_piles"), width=12, state="readonly").grid(row=9, column=2, sticky="ew", pady=4)
+        ttk.Combobox(frame, textvariable=self.card_var_mode_var, values=("set", "add"), width=8, state="readonly").grid(row=9, column=3, sticky="ew", pady=4)
+        ttk.Entry(frame, textvariable=self.card_var_value_var, width=12).grid(row=9, column=4, sticky="ew", pady=4)
 
-        ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=10, column=0, columnspan=7, sticky="ew", pady=8)
+        ttk.Label(frame, text="Relic Type").grid(row=10, column=0, sticky=tk.W, pady=4)
+        ttk.Entry(frame, textvariable=self.relic_type_var, width=24).grid(row=10, column=1, sticky="ew", pady=4)
+        ttk.Label(frame, text="Relic Count").grid(row=10, column=2, sticky=tk.E, pady=4)
+        ttk.Entry(frame, textvariable=self.relic_count_var, width=12).grid(row=10, column=3, sticky=tk.W, pady=4)
+        ttk.Button(frame, text="Obtain Relic (Bridge)", command=lambda: self._run_async(self._obtain_relic_bridge)).grid(row=10, column=4, sticky="ew", pady=4)
+        ttk.Entry(frame, textvariable=self.relic_var_name_var, width=12).grid(row=10, column=5, sticky="ew", pady=4)
+        ttk.Entry(frame, textvariable=self.relic_var_value_var, width=12).grid(row=10, column=6, sticky="ew", pady=4)
 
-        ttk.Label(frame, text="Catalog Search").grid(row=11, column=0, sticky=tk.W, pady=4)
+        ttk.Button(frame, text="Tune Card Var", command=lambda: self._run_async(self._tune_card_var_bridge)).grid(row=11, column=5, sticky="ew", pady=4)
+        ttk.Combobox(frame, textvariable=self.relic_var_mode_var, values=("set", "add"), width=8, state="readonly").grid(row=11, column=4, sticky="ew", pady=4)
+        ttk.Button(frame, text="Tune Relic Var", command=lambda: self._run_async(self._tune_relic_var_bridge)).grid(row=11, column=6, sticky="ew", pady=4)
+        ttk.Label(frame, text="Map Col").grid(row=12, column=0, sticky=tk.W, pady=4)
+        ttk.Entry(frame, textvariable=self.map_col_var, width=8).grid(row=12, column=1, sticky="ew", pady=4)
+        ttk.Label(frame, text="Row").grid(row=12, column=2, sticky=tk.E, pady=4)
+        ttk.Entry(frame, textvariable=self.map_row_var, width=8).grid(row=12, column=3, sticky="ew", pady=4)
+        ttk.Button(frame, text="Jump Map Coord", command=lambda: self._run_async(self._jump_map_bridge)).grid(row=12, column=4, sticky="ew", pady=4)
+
+        ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=13, column=0, columnspan=7, sticky="ew", pady=8)
+
+        ttk.Label(frame, text="Catalog Search").grid(row=14, column=0, sticky=tk.W, pady=4)
         search_entry = ttk.Entry(frame, textvariable=self.catalog_query_var, width=32)
-        search_entry.grid(row=11, column=1, columnspan=2, sticky="ew", pady=4)
+        search_entry.grid(row=14, column=1, columnspan=2, sticky="ew", pady=4)
         search_entry.bind("<KeyRelease>", lambda _event: self._render_catalogs())
-        ttk.Button(frame, text="Refresh Catalogs", command=lambda: self._run_async(self._refresh_catalogs)).grid(row=11, column=3, sticky="ew", pady=4)
-        ttk.Label(frame, textvariable=self.catalog_status_var).grid(row=11, column=4, columnspan=3, sticky=tk.W, pady=4)
+        ttk.Button(frame, text="Refresh Catalogs", command=lambda: self._run_async(self._refresh_catalogs, requires_license=False)).grid(row=14, column=3, sticky="ew", pady=4)
+        ttk.Label(frame, textvariable=self.catalog_status_var).grid(row=14, column=4, columnspan=3, sticky=tk.W, pady=4)
 
         self.catalog_notebook = ttk.Notebook(frame)
-        self.catalog_notebook.grid(row=12, column=0, columnspan=7, sticky="nsew", pady=(4, 8))
-        frame.rowconfigure(12, weight=1)
+        self.catalog_notebook.grid(row=15, column=0, columnspan=7, sticky="nsew", pady=(4, 8))
+        frame.rowconfigure(15, weight=1)
         self.card_listbox = self._build_catalog_tab(self.catalog_notebook, "Cards", self._on_card_selected)
         self.power_listbox = self._build_catalog_tab(self.catalog_notebook, "Powers", self._on_power_selected)
         self.relic_listbox = self._build_catalog_tab(self.catalog_notebook, "Relics", self._on_relic_selected)
 
-        ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=13, column=0, columnspan=7, sticky="ew", pady=8)
+        ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=16, column=0, columnspan=7, sticky="ew", pady=8)
 
-        ttk.Label(frame, text="Dev Console Command").grid(row=14, column=0, sticky=tk.W, pady=4)
-        ttk.Entry(frame, textvariable=self.console_command_var, width=72).grid(row=14, column=1, columnspan=4, sticky="ew", pady=4)
-        ttk.Button(frame, text="Run Console Command", command=lambda: self._run_async(self._run_console_command)).grid(row=14, column=5, sticky="ew", pady=4)
-        ttk.Button(frame, text="Enable Full Console", command=lambda: self._run_async(self._enable_full_console)).grid(row=14, column=6, sticky="ew", pady=4)
+        ttk.Label(frame, text="Dev Console Command").grid(row=17, column=0, sticky=tk.W, pady=4)
+        ttk.Entry(frame, textvariable=self.console_command_var, width=72).grid(row=17, column=1, columnspan=4, sticky="ew", pady=4)
+        ttk.Button(frame, text="Run Console Command", command=lambda: self._run_async(self._run_console_command)).grid(row=17, column=5, sticky="ew", pady=4)
+        ttk.Button(frame, text="Enable Full Console", command=lambda: self._run_async(self._enable_full_console)).grid(row=17, column=6, sticky="ew", pady=4)
 
-        ttk.Label(frame, text="Console Backend").grid(row=15, column=0, sticky=tk.W, pady=4)
-        ttk.Combobox(frame, textvariable=self.console_backend_var, values=("sendinput_scan", "sendinput", "directinput", "legacy_event"), width=16, state="readonly").grid(row=15, column=1, sticky=tk.W, pady=4)
-        ttk.Label(frame, text="Open Key").grid(row=15, column=2, sticky=tk.E, pady=4)
-        ttk.Entry(frame, textvariable=self.console_open_key_var, width=12).grid(row=15, column=3, sticky=tk.W, pady=4)
-        ttk.Label(frame, text="Typing Interval").grid(row=15, column=4, sticky=tk.E, pady=4)
-        ttk.Entry(frame, textvariable=self.console_typing_interval_var, width=12).grid(row=15, column=5, sticky=tk.W, pady=4)
-        ttk.Checkbutton(frame, text="Leave Console Open", variable=self.console_leave_open_var).grid(row=15, column=6, sticky=tk.W, pady=4)
+        ttk.Label(frame, text="Console Backend").grid(row=18, column=0, sticky=tk.W, pady=4)
+        ttk.Combobox(frame, textvariable=self.console_backend_var, values=("sendinput_scan", "sendinput", "directinput", "legacy_event"), width=16, state="readonly").grid(row=18, column=1, sticky=tk.W, pady=4)
+        ttk.Label(frame, text="Open Key").grid(row=18, column=2, sticky=tk.E, pady=4)
+        ttk.Entry(frame, textvariable=self.console_open_key_var, width=12).grid(row=18, column=3, sticky=tk.W, pady=4)
+        ttk.Label(frame, text="Typing Interval").grid(row=18, column=4, sticky=tk.E, pady=4)
+        ttk.Entry(frame, textvariable=self.console_typing_interval_var, width=12).grid(row=18, column=5, sticky=tk.W, pady=4)
+        ttk.Checkbutton(frame, text="Leave Console Open", variable=self.console_leave_open_var).grid(row=18, column=6, sticky=tk.W, pady=4)
 
-        ttk.Label(frame, text="Power Template").grid(row=16, column=0, sticky=tk.W, pady=4)
-        ttk.Entry(frame, textvariable=self.console_power_template_var, width=40).grid(row=16, column=1, columnspan=3, sticky="ew", pady=4)
-        ttk.Combobox(frame, textvariable=self.console_power_target_var, values=("player", "enemy"), width=10, state="readonly").grid(row=16, column=4, sticky=tk.W, pady=4)
-        ttk.Entry(frame, textvariable=self.console_power_type_var, width=20).grid(row=16, column=5, sticky="ew", pady=4)
-        ttk.Entry(frame, textvariable=self.console_power_amount_var, width=12).grid(row=16, column=6, sticky="ew", pady=4)
-        ttk.Button(frame, text="Fill Power Command", command=self._fill_power_command).grid(row=17, column=5, sticky="ew", pady=4)
+        ttk.Label(frame, text="Power Template").grid(row=19, column=0, sticky=tk.W, pady=4)
+        ttk.Entry(frame, textvariable=self.console_power_template_var, width=40).grid(row=19, column=1, columnspan=3, sticky="ew", pady=4)
+        ttk.Combobox(frame, textvariable=self.console_power_target_var, values=("player", "enemy"), width=10, state="readonly").grid(row=19, column=4, sticky=tk.W, pady=4)
+        ttk.Entry(frame, textvariable=self.console_power_type_var, width=20).grid(row=19, column=5, sticky="ew", pady=4)
+        ttk.Entry(frame, textvariable=self.console_power_amount_var, width=12).grid(row=19, column=6, sticky="ew", pady=4)
+        ttk.Button(frame, text="Fill Power Command", command=self._fill_power_command).grid(row=20, column=5, sticky="ew", pady=4)
 
-        ttk.Button(frame, text="Help", command=self._preset_help).grid(row=17, column=1, sticky="ew", pady=4)
-        ttk.Button(frame, text="Help Power", command=self._preset_help_power).grid(row=17, column=2, sticky="ew", pady=4)
-        ttk.Button(frame, text="Help Block", command=self._preset_help_block).grid(row=17, column=3, sticky="ew", pady=4)
-        ttk.Button(frame, text="Help Energy", command=self._preset_help_energy).grid(row=17, column=4, sticky="ew", pady=4)
+        ttk.Button(frame, text="Help", command=self._preset_help).grid(row=20, column=1, sticky="ew", pady=4)
+        ttk.Button(frame, text="Help Power", command=self._preset_help_power).grid(row=20, column=2, sticky="ew", pady=4)
+        ttk.Button(frame, text="Help Block", command=self._preset_help_block).grid(row=20, column=3, sticky="ew", pady=4)
+        ttk.Button(frame, text="Help Energy", command=self._preset_help_energy).grid(row=20, column=4, sticky="ew", pady=4)
 
-        self.log = tk.Text(frame, wrap=tk.WORD, height=22)
-        self.log.grid(row=18, column=0, columnspan=7, sticky="nsew", pady=(12, 0))
-        frame.rowconfigure(18, weight=1)
+        ttk.Separator(frame, orient=tk.HORIZONTAL).grid(row=21, column=0, columnspan=7, sticky="ew", pady=8)
+        ttk.Label(frame, textvariable=self.license_status_var).grid(row=22, column=0, columnspan=4, sticky=tk.W, pady=4)
+        ttk.Label(frame, text="Install ID").grid(row=22, column=4, sticky=tk.E, pady=4)
+        ttk.Entry(frame, textvariable=self.license_install_id_var, width=22).grid(row=22, column=5, columnspan=2, sticky="ew", pady=4)
+        ttk.Label(frame, text="License Key").grid(row=23, column=0, sticky=tk.W, pady=4)
+        ttk.Entry(frame, textvariable=self.license_key_var, width=48).grid(row=23, column=1, columnspan=4, sticky="ew", pady=4)
+        ttk.Button(frame, text="Refresh License", command=lambda: self._run_async(self._refresh_license_status, requires_license=False)).grid(row=23, column=5, sticky="ew", pady=4)
+        ttk.Button(frame, text="Activate", command=lambda: self._run_async(self._activate_license, requires_license=False)).grid(row=23, column=6, sticky="ew", pady=4)
+
+        self.log = tk.Text(frame, wrap=tk.WORD, height=20)
+        self.log.grid(row=24, column=0, columnspan=7, sticky="nsew", pady=(12, 0))
+        frame.rowconfigure(24, weight=1)
 
     def _build_catalog_tab(self, notebook: ttk.Notebook, title: str, on_select) -> tk.Listbox:
         container = ttk.Frame(notebook, padding=4)
@@ -222,15 +285,49 @@ class ManagedControlWindow:
         finally:
             runtime.close()
 
-    def _run_async(self, fn) -> None:
-        thread = threading.Thread(target=self._safe_run, args=(fn,), daemon=True)
+    def _run_async(self, fn, *, requires_license: bool = True) -> None:
+        thread = threading.Thread(target=self._safe_run, args=(fn, requires_license), daemon=True)
         thread.start()
 
-    def _safe_run(self, fn) -> None:
+    def _safe_run(self, fn, requires_license: bool) -> None:
         try:
+            if requires_license:
+                self._ensure_license_access(fn.__name__)
             fn()
         except Exception as exc:  # pragma: no cover - UI path
             self._emit(f"ERROR: {exc}")
+
+    def _ensure_license_access(self, feature: str) -> None:
+        status = ensure_managed_controls_access(feature, storage_dir=self._repo_root / ".managed_controls")
+        self._apply_license_status(status)
+
+    def _refresh_license_status(self) -> None:
+        status = get_managed_controls_license_status("managed-control-ui", storage_dir=self._repo_root / ".managed_controls")
+        self._apply_license_status(status)
+        self._emit(f"license_status {status.message} install_id={status.install_id}")
+
+    def _activate_license(self) -> None:
+        key = self.license_key_var.get().strip()
+        if not key:
+            raise ManagedControlsLicenseError("license key is empty")
+        status = activate_managed_controls(key, storage_dir=self._repo_root / ".managed_controls")
+        self._apply_license_status(status)
+        self._emit("license_activated unlimited access enabled")
+
+    def _apply_license_status(self, status) -> None:
+        def update() -> None:
+            self.license_install_id_var.set(status.install_id)
+            mode = "Unlimited" if status.unlocked else "Trial"
+            if status.unlocked:
+                text = f"License: {mode} active"
+            elif status.expired:
+                text = f"License: Trial expired. Purchase/unlock to continue. Install ID: {status.install_id}"
+            else:
+                minutes = max(1, status.remaining_seconds // 60)
+                text = f"License: Trial active, about {minutes} minute(s) remaining"
+            self.license_status_var.set(text)
+
+        self._root.after(0, update)
 
     def _refresh_catalogs(self) -> None:
         bundle = load_catalog_bundle(workspace_dir=self._repo_root)
@@ -316,6 +413,17 @@ class ManagedControlWindow:
 
         self._with_pid(action)
 
+    def _set_gold(self) -> None:
+        value = int(self.gold_var.get())
+
+        def action(pid: int) -> None:
+            result = set_managed_player_gold(pid, gold=value, workspace_dir=self._repo_root)
+            self._emit(f"set_gold previous={result.previous_gold} requested={result.requested_gold}")
+            summary = probe_managed_numeric(pid, workspace_dir=self._repo_root)
+            self._emit(f"verified gold={summary.gold}")
+
+        self._with_pid(action)
+
     def _set_energy(self) -> None:
         value = int(self.energy_var.get())
         max_value_text = self.max_energy_var.get().strip()
@@ -382,6 +490,11 @@ class ManagedControlWindow:
         self._with_pid(action)
 
     def _start_maintain_block(self) -> None:
+        try:
+            self._ensure_license_access("maintain_block")
+        except Exception as exc:  # pragma: no cover - UI path
+            self._emit(f"ERROR: {exc}")
+            return
         if self._block_maintain_thread is not None and self._block_maintain_thread.is_alive():
             self._emit("maintain_block already running")
             return
@@ -399,6 +512,8 @@ class ManagedControlWindow:
         interval = float(self.block_interval_var.get())
         while not self._block_maintain_stop.is_set():
             try:
+                self._ensure_license_access("maintain_block")
+
                 def action(pid: int) -> None:
                     result = set_managed_player_block(pid, value, workspace_dir=self._repo_root)
                     summary = probe_managed_numeric(pid, workspace_dir=self._repo_root)
@@ -408,11 +523,19 @@ class ManagedControlWindow:
                     )
 
                 self._with_pid(action)
+            except ManagedControlsLicenseError as exc:  # pragma: no cover - UI path
+                self._emit(f"maintain_block ERROR: {exc}")
+                self._block_maintain_stop.set()
             except Exception as exc:  # pragma: no cover - UI path
                 self._emit(f"maintain_block ERROR: {exc}")
             time.sleep(max(0.05, interval))
 
     def _start_maintain_energy(self) -> None:
+        try:
+            self._ensure_license_access("maintain_energy")
+        except Exception as exc:  # pragma: no cover - UI path
+            self._emit(f"ERROR: {exc}")
+            return
         if self._energy_maintain_thread is not None and self._energy_maintain_thread.is_alive():
             self._emit("maintain_energy already running")
             return
@@ -432,6 +555,8 @@ class ManagedControlWindow:
         interval = float(self.energy_interval_var.get())
         while not self._energy_maintain_stop.is_set():
             try:
+                self._ensure_license_access("maintain_energy")
+
                 def action(pid: int) -> None:
                     result = set_managed_player_energy(pid, energy=value, max_energy=max_value, workspace_dir=self._repo_root)
                     summary = probe_managed_numeric(pid, workspace_dir=self._repo_root)
@@ -441,6 +566,9 @@ class ManagedControlWindow:
                     )
 
                 self._with_pid(action)
+            except ManagedControlsLicenseError as exc:  # pragma: no cover - UI path
+                self._emit(f"maintain_energy ERROR: {exc}")
+                self._energy_maintain_stop.set()
             except Exception as exc:  # pragma: no cover - UI path
                 self._emit(f"maintain_energy ERROR: {exc}")
             time.sleep(max(0.05, interval))
@@ -519,26 +647,50 @@ class ManagedControlWindow:
         target = self.power_target_var.get().strip()
         power_type = self.power_type_var.get().strip()
         value = int(self.power_value_var.get())
-        result = send_bridge_apply_power(power_type=power_type, amount=value, target=target)
+        enemy_index = int(self.power_enemy_index_var.get())
+        result = send_bridge_apply_power(power_type=power_type, amount=value, target=target, enemy_index=enemy_index)
         self._emit(f"bridge_power request={result.request} response={result.response}")
+
+    def _set_auto_power_bridge(self) -> None:
+        target = self.power_target_var.get().strip()
+        power_type = self.power_type_var.get().strip()
+        value = int(self.power_value_var.get())
+        enemy_index = int(self.power_enemy_index_var.get())
+        result = send_bridge_set_auto_power_on_combat_start(
+            power_type=power_type,
+            amount=value,
+            target=target,
+            enemy_index=enemy_index,
+        )
+        self._emit(f"bridge_auto_power request={result.request} response={result.response}")
+
+    def _clear_auto_power_bridge(self) -> None:
+        target = self.power_target_var.get().strip()
+        power_type = self.power_type_var.get().strip()
+        enemy_index = int(self.power_enemy_index_var.get())
+        result = send_bridge_clear_auto_power_on_combat_start(power_type=power_type, target=target, enemy_index=enemy_index)
+        self._emit(f"bridge_clear_auto_power request={result.request} response={result.response}")
 
     def _add_card_to_deck_bridge(self) -> None:
         card_type = self.card_type_var.get().strip()
         count = int(self.card_count_var.get())
-        result = send_bridge_add_card(card_type=card_type, destination="deck", count=count)
+        upgrade_count = int(self.card_upgrade_var.get())
+        result = send_bridge_add_card(card_type=card_type, destination="deck", count=count, upgrade_count=upgrade_count)
         self._emit(f"bridge_add_card request={result.request} response={result.response}")
 
     def _add_card_to_hand_bridge(self) -> None:
         card_type = self.card_type_var.get().strip()
         count = int(self.card_count_var.get())
-        result = send_bridge_add_card(card_type=card_type, destination="hand", count=count)
+        upgrade_count = int(self.card_upgrade_var.get())
+        result = send_bridge_add_card(card_type=card_type, destination="hand", count=count, upgrade_count=upgrade_count)
         self._emit(f"bridge_add_card request={result.request} response={result.response}")
 
     def _replace_master_deck_bridge(self) -> None:
         card_type = self.card_type_var.get().strip()
         count_text = self.card_count_var.get().strip()
         count = int(count_text) if count_text else None
-        result = send_bridge_replace_master_deck(card_type=card_type, count=count)
+        upgrade_count = int(self.card_upgrade_var.get())
+        result = send_bridge_replace_master_deck(card_type=card_type, count=count, upgrade_count=upgrade_count)
         self._emit(f"bridge_replace_deck request={result.request} response={result.response}")
 
     def _obtain_relic_bridge(self) -> None:
@@ -546,6 +698,32 @@ class ManagedControlWindow:
         count = int(self.relic_count_var.get())
         result = send_bridge_obtain_relic(relic_type=relic_type, count=count)
         self._emit(f"bridge_obtain_relic request={result.request} response={result.response}")
+
+    def _tune_card_var_bridge(self) -> None:
+        result = send_bridge_tune_card_var(
+            card_type=self.card_type_var.get().strip(),
+            var_name=self.card_var_name_var.get().strip(),
+            amount=int(self.card_var_value_var.get()),
+            scope=self.card_var_scope_var.get().strip(),
+            mode=self.card_var_mode_var.get().strip(),
+        )
+        self._emit(f"bridge_tune_card request={result.request} response={result.response}")
+
+    def _tune_relic_var_bridge(self) -> None:
+        result = send_bridge_tune_relic_var(
+            relic_type=self.relic_type_var.get().strip(),
+            var_name=self.relic_var_name_var.get().strip(),
+            amount=int(self.relic_var_value_var.get()),
+            mode=self.relic_var_mode_var.get().strip(),
+        )
+        self._emit(f"bridge_tune_relic request={result.request} response={result.response}")
+
+    def _jump_map_bridge(self) -> None:
+        result = send_bridge_jump_to_map_coord(
+            col=int(self.map_col_var.get()),
+            row=int(self.map_row_var.get()),
+        )
+        self._emit(f"bridge_jump_map request={result.request} response={result.response}")
 
     def _drain_logs(self) -> None:
         while True:

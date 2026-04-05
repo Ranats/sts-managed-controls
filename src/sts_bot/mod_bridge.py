@@ -113,6 +113,7 @@ def send_bridge_add_card(
     card_type: str,
     destination: str,
     count: int = 1,
+    upgrade_count: int = 0,
     pipe_path: str = BRIDGE_PIPE_PATH,
 ) -> BridgeCommandResult:
     normalized_destination = destination.strip().lower()
@@ -122,6 +123,7 @@ def send_bridge_add_card(
         "action": f"add_card_to_{normalized_destination}",
         "card_type": card_type,
         "count": int(count),
+        "upgrade_count": int(upgrade_count),
     }
     response = _send_pipe_json(pipe_path, request)
     return BridgeCommandResult(pipe_path=pipe_path, request=request, response=response)
@@ -131,11 +133,13 @@ def send_bridge_replace_master_deck(
     *,
     card_type: str,
     count: int | None = None,
+    upgrade_count: int = 0,
     pipe_path: str = BRIDGE_PIPE_PATH,
 ) -> BridgeCommandResult:
     request: dict[str, object] = {
         "action": "replace_master_deck",
         "card_type": card_type,
+        "upgrade_count": int(upgrade_count),
     }
     if count is not None:
         request["count"] = int(count)
@@ -153,6 +157,97 @@ def send_bridge_obtain_relic(
         "action": "obtain_relic",
         "relic_type": relic_type,
         "count": int(count),
+    }
+    response = _send_pipe_json(pipe_path, request)
+    return BridgeCommandResult(pipe_path=pipe_path, request=request, response=response)
+
+
+def send_bridge_set_auto_power_on_combat_start(
+    *,
+    power_type: str,
+    amount: int,
+    target: str = "player",
+    enemy_index: int = 0,
+    pipe_path: str = BRIDGE_PIPE_PATH,
+) -> BridgeCommandResult:
+    request = {
+        "action": "set_auto_power_on_combat_start",
+        "target": target,
+        "power_type": power_type,
+        "amount": int(amount),
+        "enemy_index": int(enemy_index),
+    }
+    response = _send_pipe_json(pipe_path, request)
+    return BridgeCommandResult(pipe_path=pipe_path, request=request, response=response)
+
+
+def send_bridge_clear_auto_power_on_combat_start(
+    *,
+    power_type: str = "",
+    target: str = "",
+    enemy_index: int = 0,
+    pipe_path: str = BRIDGE_PIPE_PATH,
+) -> BridgeCommandResult:
+    request = {
+        "action": "clear_auto_power_on_combat_start",
+        "power_type": power_type,
+        "target": target,
+        "enemy_index": int(enemy_index),
+    }
+    response = _send_pipe_json(pipe_path, request)
+    return BridgeCommandResult(pipe_path=pipe_path, request=request, response=response)
+
+
+def send_bridge_jump_to_map_coord(
+    *,
+    col: int,
+    row: int,
+    pipe_path: str = BRIDGE_PIPE_PATH,
+) -> BridgeCommandResult:
+    request = {
+        "action": "jump_to_map_coord",
+        "col": int(col),
+        "row": int(row),
+    }
+    response = _send_pipe_json(pipe_path, request)
+    return BridgeCommandResult(pipe_path=pipe_path, request=request, response=response)
+
+
+def send_bridge_tune_card_var(
+    *,
+    card_type: str,
+    var_name: str,
+    amount: int,
+    scope: str,
+    mode: str = "set",
+    pipe_path: str = BRIDGE_PIPE_PATH,
+) -> BridgeCommandResult:
+    request = {
+        "action": "tune_card_var",
+        "card_type": card_type,
+        "var_name": var_name,
+        "amount": int(amount),
+        "scope": scope,
+        "mode": mode,
+    }
+    response = _send_pipe_json(pipe_path, request)
+    return BridgeCommandResult(pipe_path=pipe_path, request=request, response=response)
+
+
+def send_bridge_tune_relic_var(
+    *,
+    relic_type: str,
+    var_name: str,
+    amount: int,
+    mode: str = "set",
+    pipe_path: str = BRIDGE_PIPE_PATH,
+) -> BridgeCommandResult:
+    request = {
+        "action": "tune_relic_var",
+        "relic_type": relic_type,
+        "var_name": var_name,
+        "amount": int(amount),
+        "mode": mode,
     }
     response = _send_pipe_json(pipe_path, request)
     return BridgeCommandResult(pipe_path=pipe_path, request=request, response=response)

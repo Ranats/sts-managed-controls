@@ -164,7 +164,7 @@ class CliHelpersTest(unittest.TestCase):
 
         self.assertEqual(profile.input_backend_name, "window_messages")
         self.assertEqual(profile.scene_input_backends.get("battle"), "gamepad")
-        self.assertEqual(profile.scene_input_backends.get("reward_cards"), "window_messages")
+        self.assertEqual(profile.scene_input_backends.get("reward_cards"), "gamepad")
 
     def test_default_expectation_for_card_grid_pick_does_not_claim_continue_screen(self) -> None:
         state = GameState(
@@ -218,6 +218,7 @@ class CliHelpersTest(unittest.TestCase):
             ],
             "errors": [],
         }
+
         with patch("sys.argv", ["sts-lab", "probe-memory", "--profile", "profiles\\windows.example.json"]):
             with patch("sys.stdout", new_callable=io.StringIO) as stdout:
                 main()
@@ -231,6 +232,43 @@ class CliHelpersTest(unittest.TestCase):
         self.assertIn("enemy=0xenemy hp=33/40 block=12", rendered)
         self.assertIn("enemy_power=0xenemy type=MegaCrit.Sts2.Core.Models.Powers.WeakPower amount=1 address=0x2", rendered)
         adapter.probe_memory.assert_called_once_with(screen=ScreenKind.BATTLE)
+
+    @patch("sts_bot.cli.time.sleep", return_value=None)
+    @patch("sts_bot.cli._load_profile_for_live", return_value=SimpleNamespace())
+    @patch("sts_bot.cli.WindowsStsAdapter")
+    def test_main_play_turn_live_does_not_infer_progress_when_target_selection_remains(
+        self,
+        mock_adapter_cls,
+        _mock_load_profile,
+        _mock_sleep,
+    ) -> None:
+        adapter = mock_adapter_cls.return_value
+        before = object()
+        after = object()
+        adapter.capture_image_retry.side_effect = [before, after]
+        adapter.play_basic_battle_turn.return_value = []
+        adapter.inspect_image.return_value = SimpleNamespace(screen=ScreenKind.BATTLE)
+        adapter._battle_progress_made.return_value = True
+        adapter._selection_requires_target.return_value = True
+        adapter._active_card_selection_origin.return_value = None
+
+        stdout = io.StringIO()
+        with patch(
+            "sys.argv",
+            [
+                "sts-lab",
+                "play-turn-live",
+                "--profile",
+                "profiles\\windows.example.json",
+                "--backend",
+                "gamepad",
+            ],
+        ):
+            with patch("sys.stdout", stdout):
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn("played=['none'] next_screen=battle", rendered)
 
     @patch("sts_bot.cli._load_profile_for_live", return_value=SimpleNamespace())
     @patch("sts_bot.cli.WindowsStsAdapter")
@@ -365,6 +403,50 @@ class CliHelpersTest(unittest.TestCase):
         self.assertIn("write_field=player_block address=0x857de2ac previous=5 requested=9", rendered)
         self.assertIn("verified_block=9 hp=22/80 gold=453 energy=0/3", rendered)
         mock_set_block.assert_called_once()
+        mock_probe_managed.assert_called_once()
+
+    @patch("sts_bot.cli._load_profile_for_live", return_value=SimpleNamespace())
+    @patch("sts_bot.cli.create_runtime")
+    @patch("sts_bot.cli.probe_managed_numeric")
+    @patch("sts_bot.cli.set_managed_player_gold")
+    def test_main_set_managed_gold_writes_and_verifies(
+        self,
+        mock_set_gold,
+        mock_probe_managed,
+        mock_create_runtime,
+        _mock_load_profile,
+    ) -> None:
+        mock_create_runtime.return_value = SimpleNamespace(target=SimpleNamespace(pid=2348), close=lambda: None)
+        mock_set_gold.return_value = SimpleNamespace(
+            field="player_gold",
+            previous_gold=453,
+            requested_gold=999,
+            previous_ui_gold=453,
+            wrote_ui_gold=True,
+            to_dict=lambda: {},
+        )
+        mock_probe_managed.return_value = SimpleNamespace(
+            floor=6,
+            ascension=4,
+            hp=22,
+            max_hp=80,
+            block=9,
+            gold=999,
+            energy=0,
+            max_energy=3,
+            player_powers=[],
+            enemies=[],
+            to_dict=lambda: {},
+        )
+
+        with patch("sys.argv", ["sts-lab", "set-managed-gold", "--profile", "profiles\\windows.example.json", "--value", "999"]):
+            with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn("write_field=player_gold previous_gold=453 requested_gold=999 previous_ui_gold=453 wrote_ui_gold=True", rendered)
+        self.assertIn("verified_gold=999 hp=22/80 block=9 energy=0/3", rendered)
+        mock_set_gold.assert_called_once()
         mock_probe_managed.assert_called_once()
 
     @patch("sts_bot.cli._load_profile_for_live", return_value=SimpleNamespace())
@@ -578,6 +660,69 @@ class CliHelpersTest(unittest.TestCase):
 
         mock_launch_ui.assert_called_once_with((Path(__file__).resolve().parents[1] / "profiles" / "windows.example.json").resolve())
 
+    @patch("sts_bot.cli.get_managed_controls_license_status")
+    def test_main_managed_controls_license_status_renders_status(self, mock_get_status) -> None:
+        mock_get_status.return_value = SimpleNamespace(
+            unlocked=False,
+            can_use=True,
+            expired=False,
+            remaining_seconds=1200,
+            install_id="abc123",
+            message="Trial active: about 20 minute(s) remaining.",
+            to_dict=lambda: {"install_id": "abc123"},
+        )
+
+        with patch("sys.argv", ["sts-lab", "managed-controls-license-status"]):
+            with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn("license_mode=trial can_use=True expired=False remaining_seconds=1200 install_id=abc123", rendered)
+        mock_get_status.assert_called_once()
+
+    @patch("sts_bot.cli.activate_managed_controls")
+    def test_main_activate_managed_controls_renders_status(self, mock_activate) -> None:
+        mock_activate.return_value = SimpleNamespace(
+            unlocked=True,
+            can_use=True,
+            expired=True,
+            remaining_seconds=0,
+            install_id="abc123",
+            message="Unlimited mode unlocked.",
+            to_dict=lambda: {"install_id": "abc123", "unlocked": True},
+        )
+
+        with patch("sys.argv", ["sts-lab", "activate-managed-controls", "--license-key", "SMC1-ABC-123"]):
+            with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn("license_mode=unlimited can_use=True expired=True remaining_seconds=0 install_id=abc123", rendered)
+        mock_activate.assert_called_once_with("SMC1-ABC-123", storage_dir=(Path(__file__).resolve().parents[1] / ".managed_controls"))
+
+    @patch("sts_bot.cli.get_managed_controls_license_status")
+    @patch("sts_bot.cli.ensure_managed_controls_access")
+    def test_main_gated_command_renders_license_error(self, mock_ensure_access, mock_get_status) -> None:
+        from sts_bot.managed_controls_license import ManagedControlsLicenseError
+
+        mock_ensure_access.side_effect = ManagedControlsLicenseError("Trial expired. Purchase an unlock key.")
+        mock_get_status.return_value = SimpleNamespace(
+            unlocked=False,
+            can_use=False,
+            expired=True,
+            remaining_seconds=0,
+            install_id="abc123",
+            message="Trial expired. Purchase an unlock key.",
+        )
+
+        with patch("sys.argv", ["sts-lab", "bridge-add-card", "--card-type", "Whirlwind", "--destination", "hand"]):
+            with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn("license_error=Trial expired. Purchase an unlock key.", rendered)
+        self.assertIn("license_mode=trial can_use=False expired=True remaining_seconds=0 install_id=abc123", rendered)
+
     @patch("sts_bot.cli.install_bridge_mod")
     def test_main_install_bridge_mod_renders_paths(self, mock_install_bridge_mod) -> None:
         mock_install_bridge_mod.return_value = SimpleNamespace(
@@ -619,14 +764,14 @@ class CliHelpersTest(unittest.TestCase):
     @patch("sts_bot.cli.send_bridge_add_card")
     def test_main_bridge_add_card_renders_request_and_response(self, mock_send_bridge_add_card) -> None:
         mock_send_bridge_add_card.return_value = SimpleNamespace(
-            request={"action": "add_card_to_hand", "card_type": "Whirlwind", "count": 2},
+            request={"action": "add_card_to_hand", "card_type": "Whirlwind", "count": 2, "upgrade_count": 1},
             response={"ok": True, "status": "queued"},
             to_dict=lambda: {},
         )
 
         with patch(
             "sys.argv",
-            ["sts-lab", "bridge-add-card", "--card-type", "Whirlwind", "--destination", "hand", "--count", "2"],
+            ["sts-lab", "bridge-add-card", "--card-type", "Whirlwind", "--destination", "hand", "--count", "2", "--upgrade-count", "1"],
         ):
             with patch("sys.stdout", new_callable=io.StringIO) as stdout:
                 main()
@@ -634,19 +779,20 @@ class CliHelpersTest(unittest.TestCase):
         rendered = stdout.getvalue()
         self.assertIn('"action": "add_card_to_hand"', rendered)
         self.assertIn('"card_type": "Whirlwind"', rendered)
-        mock_send_bridge_add_card.assert_called_once()
+        self.assertIn('"upgrade_count": 1', rendered)
+        mock_send_bridge_add_card.assert_called_once_with(card_type="Whirlwind", destination="hand", count=2, upgrade_count=1)
 
     @patch("sts_bot.cli.send_bridge_replace_master_deck")
     def test_main_bridge_replace_master_deck_renders_request_and_response(self, mock_send_bridge_replace_master_deck) -> None:
         mock_send_bridge_replace_master_deck.return_value = SimpleNamespace(
-            request={"action": "replace_master_deck", "card_type": "Whirlwind", "count": 10},
+            request={"action": "replace_master_deck", "card_type": "Whirlwind", "count": 10, "upgrade_count": 2},
             response={"ok": True, "status": "queued"},
             to_dict=lambda: {},
         )
 
         with patch(
             "sys.argv",
-            ["sts-lab", "bridge-replace-master-deck", "--card-type", "Whirlwind", "--count", "10"],
+            ["sts-lab", "bridge-replace-master-deck", "--card-type", "Whirlwind", "--count", "10", "--upgrade-count", "2"],
         ):
             with patch("sys.stdout", new_callable=io.StringIO) as stdout:
                 main()
@@ -654,7 +800,8 @@ class CliHelpersTest(unittest.TestCase):
         rendered = stdout.getvalue()
         self.assertIn('"action": "replace_master_deck"', rendered)
         self.assertIn('"count": 10', rendered)
-        mock_send_bridge_replace_master_deck.assert_called_once()
+        self.assertIn('"upgrade_count": 2', rendered)
+        mock_send_bridge_replace_master_deck.assert_called_once_with(card_type="Whirlwind", count=10, upgrade_count=2)
 
     @patch("sts_bot.cli.send_bridge_obtain_relic")
     def test_main_bridge_obtain_relic_renders_request_and_response(self, mock_send_bridge_obtain_relic) -> None:
@@ -675,6 +822,80 @@ class CliHelpersTest(unittest.TestCase):
         self.assertIn('"action": "obtain_relic"', rendered)
         self.assertIn('"relic_type": "Anchor"', rendered)
         mock_send_bridge_obtain_relic.assert_called_once()
+
+    @patch("sts_bot.cli.send_bridge_set_auto_power_on_combat_start")
+    def test_main_bridge_set_auto_power_renders_request_and_response(self, mock_send_bridge_set_auto_power) -> None:
+        mock_send_bridge_set_auto_power.return_value = SimpleNamespace(
+            request={"action": "set_auto_power_on_combat_start", "target": "player", "power_type": "StrengthPower", "amount": 100, "enemy_index": 0},
+            response={"ok": True, "status": "configured"},
+            to_dict=lambda: {},
+        )
+
+        with patch("sys.argv", ["sts-lab", "bridge-set-auto-power", "--power-type", "StrengthPower", "--value", "100"]):
+            with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn('"action": "set_auto_power_on_combat_start"', rendered)
+        self.assertIn('"status": "configured"', rendered)
+        mock_send_bridge_set_auto_power.assert_called_once_with(power_type="StrengthPower", amount=100, target="player", enemy_index=0)
+
+    @patch("sts_bot.cli.send_bridge_jump_to_map_coord")
+    def test_main_bridge_jump_map_renders_request_and_response(self, mock_send_bridge_jump_map) -> None:
+        mock_send_bridge_jump_map.return_value = SimpleNamespace(
+            request={"action": "jump_to_map_coord", "col": 2, "row": 8},
+            response={"ok": True, "status": "queued"},
+            to_dict=lambda: {},
+        )
+
+        with patch("sys.argv", ["sts-lab", "bridge-jump-map", "--col", "2", "--row", "8"]):
+            with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn('"action": "jump_to_map_coord"', rendered)
+        self.assertIn('"row": 8', rendered)
+        mock_send_bridge_jump_map.assert_called_once_with(col=2, row=8)
+
+    @patch("sts_bot.cli.send_bridge_tune_card_var")
+    def test_main_bridge_tune_card_renders_request_and_response(self, mock_send_bridge_tune_card) -> None:
+        mock_send_bridge_tune_card.return_value = SimpleNamespace(
+            request={"action": "tune_card_var", "card_type": "Whirlwind", "var_name": "Damage", "amount": 99, "scope": "hand", "mode": "set"},
+            response={"ok": True, "status": "queued"},
+            to_dict=lambda: {},
+        )
+
+        with patch(
+            "sys.argv",
+            ["sts-lab", "bridge-tune-card", "--card-type", "Whirlwind", "--var-name", "Damage", "--value", "99", "--scope", "hand"],
+        ):
+            with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn('"action": "tune_card_var"', rendered)
+        self.assertIn('"var_name": "Damage"', rendered)
+        mock_send_bridge_tune_card.assert_called_once_with(card_type="Whirlwind", var_name="Damage", amount=99, scope="hand", mode="set")
+
+    @patch("sts_bot.cli.send_bridge_tune_relic_var")
+    def test_main_bridge_tune_relic_renders_request_and_response(self, mock_send_bridge_tune_relic) -> None:
+        mock_send_bridge_tune_relic.return_value = SimpleNamespace(
+            request={"action": "tune_relic_var", "relic_type": "FestivePopper", "var_name": "Damage", "amount": 99, "mode": "set"},
+            response={"ok": True, "status": "queued"},
+            to_dict=lambda: {},
+        )
+
+        with patch(
+            "sys.argv",
+            ["sts-lab", "bridge-tune-relic", "--relic-type", "FestivePopper", "--var-name", "Damage", "--value", "99"],
+        ):
+            with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn('"action": "tune_relic_var"', rendered)
+        self.assertIn('"relic_type": "FestivePopper"', rendered)
+        mock_send_bridge_tune_relic.assert_called_once_with(relic_type="FestivePopper", var_name="Damage", amount=99, mode="set")
 
     @patch("sts_bot.cli.load_card_catalog")
     def test_main_list_game_catalog_renders_filtered_entries(self, mock_load_card_catalog) -> None:

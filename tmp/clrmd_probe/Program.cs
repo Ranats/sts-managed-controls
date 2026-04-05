@@ -40,15 +40,16 @@ internal static class Program
 
     public static int Main(string[] args)
     {
+        bool setPlayerGold = args.Length > 0 && string.Equals(args[0], "--set-player-gold", StringComparison.Ordinal);
         bool setPlayerEnergy = args.Length > 0 && string.Equals(args[0], "--set-player-energy", StringComparison.Ordinal);
         bool aliasPowers = args.Length > 0 && string.Equals(args[0], "--alias-powers", StringComparison.Ordinal);
         bool setPlayerBlock = args.Length > 0 && string.Equals(args[0], "--set-player-block", StringComparison.Ordinal);
         bool setPowerAmount = args.Length > 0 && string.Equals(args[0], "--set-power-amount", StringComparison.Ordinal);
         bool summaryJson = args.Length > 0 && string.Equals(args[0], "--summary-json", StringComparison.Ordinal);
-        int pidIndex = summaryJson || setPlayerBlock || setPowerAmount || aliasPowers || setPlayerEnergy ? 1 : 0;
+        int pidIndex = summaryJson || setPlayerBlock || setPowerAmount || aliasPowers || setPlayerEnergy || setPlayerGold ? 1 : 0;
         if (args.Length <= pidIndex || !int.TryParse(args[pidIndex], NumberStyles.None, CultureInfo.InvariantCulture, out var pid))
         {
-            Console.Error.WriteLine("usage: clrmd_probe [--summary-json] <pid> | [--set-player-block] <pid> <value> | [--set-player-energy] <pid> <currentValue> [maxValue] | [--set-power-amount] <pid> <player|enemy> <powerType> <value> | [--alias-powers] <pid> <sourceTarget> <destTarget>");
+            Console.Error.WriteLine("usage: clrmd_probe [--summary-json] <pid> | [--set-player-block] <pid> <value> | [--set-player-gold] <pid> <value> | [--set-player-energy] <pid> <currentValue> [maxValue] | [--set-power-amount] <pid> <player|enemy> <powerType> <value> | [--alias-powers] <pid> <sourceTarget> <destTarget>");
             return 1;
         }
 
@@ -56,6 +57,13 @@ internal static class Program
         if (setPlayerBlock && (args.Length <= pidIndex + 1 || !int.TryParse(args[pidIndex + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out requestedBlock)))
         {
             Console.Error.WriteLine("usage: clrmd_probe --set-player-block <pid> <value>");
+            return 1;
+        }
+
+        int requestedGold = int.MinValue;
+        if (setPlayerGold && (args.Length <= pidIndex + 1 || !int.TryParse(args[pidIndex + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out requestedGold)))
+        {
+            Console.Error.WriteLine("usage: clrmd_probe --set-player-gold <pid> <value>");
             return 1;
         }
 
@@ -127,6 +135,12 @@ internal static class Program
                     if (setPlayerBlock)
                     {
                         Console.WriteLine(JsonSerializer.Serialize(SetPlayerBlock(pid, clrInfo.Version.ToString(), runtime, matches, requestedBlock)));
+                        return 0;
+                    }
+
+                    if (setPlayerGold)
+                    {
+                        Console.WriteLine(JsonSerializer.Serialize(SetPlayerGold(pid, clrInfo.Version.ToString(), runtime, matches, requestedGold)));
                         return 0;
                     }
 
@@ -691,6 +705,66 @@ internal static class Program
             ["address"] = string.Format(CultureInfo.InvariantCulture, "0x{0:x}", fieldAddress),
             ["previous"] = previousBlock,
             ["requested"] = requestedBlock,
+        };
+        return summary;
+    }
+
+    private static Dictionary<string, object> SetPlayerGold(
+        int pid,
+        string runtimeVersion,
+        ClrRuntime runtime,
+        Dictionary<string, List<ClrObject>> matches,
+        int requestedGold)
+    {
+        ClrObject goldNode = FirstObject(matches, "MegaCrit.sts2.Core.Nodes.TopBar.NTopBarGold");
+        ClrObject hpNode = FirstObject(matches, "MegaCrit.sts2.Core.Nodes.TopBar.NTopBarHp");
+        ClrObject player = ReadNamedObjectField(goldNode, "_player");
+        if (player.IsNull)
+        {
+            player = ReadNamedObjectField(hpNode, "_player");
+        }
+
+        if (player.IsNull || player.Type == null)
+        {
+            throw new InvalidOperationException("player not found");
+        }
+
+        ClrInstanceField goldField = player.Type.Fields.FirstOrDefault(field => string.Equals(field.Name, "_gold", StringComparison.Ordinal));
+        if (goldField == null)
+        {
+            throw new InvalidOperationException("Player._gold field not found");
+        }
+
+        ulong goldAddress = goldField.GetAddress(player.Address, false);
+        int previousGold = ReadIntField(player, "_gold");
+        WriteInt32(pid, goldAddress, requestedGold);
+
+        ulong uiAddress = 0;
+        int previousUiGold = int.MinValue;
+        bool wroteUiGold = false;
+        if (!goldNode.IsNull && goldNode.Type != null)
+        {
+            ClrInstanceField uiField = goldNode.Type.Fields.FirstOrDefault(field => string.Equals(field.Name, "_currentGold", StringComparison.Ordinal));
+            if (uiField != null)
+            {
+                uiAddress = uiField.GetAddress(goldNode.Address, false);
+                previousUiGold = ReadIntField(goldNode, "_currentGold");
+                WriteInt32(pid, uiAddress, requestedGold);
+                wroteUiGold = true;
+            }
+        }
+
+        Dictionary<string, object> summary = BuildSummaryPayload(pid, runtimeVersion, runtime, matches);
+        summary["gold"] = requestedGold;
+        summary["write"] = new Dictionary<string, object>
+        {
+            ["field"] = "player_gold",
+            ["gold_address"] = string.Format(CultureInfo.InvariantCulture, "0x{0:x}", goldAddress),
+            ["previous_gold"] = previousGold,
+            ["requested_gold"] = requestedGold,
+            ["ui_address"] = uiAddress == 0 ? "" : string.Format(CultureInfo.InvariantCulture, "0x{0:x}", uiAddress),
+            ["previous_ui_gold"] = previousUiGold == int.MinValue ? previousGold : previousUiGold,
+            ["wrote_ui_gold"] = wroteUiGold,
         };
         return summary;
     }
