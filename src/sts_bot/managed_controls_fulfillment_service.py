@@ -337,6 +337,7 @@ def send_license_email(
         headers={
             "Authorization": f"Bearer {commerce.resend_api_key}",
             "Content-Type": "application/json",
+            "User-Agent": "sts2-managed-controls/1.0",
         },
         method="POST",
     )
