@@ -28,7 +28,6 @@ from sts_bot.analysis import (
 from sts_bot.calibration import annotate_profile, crop_to_file, parse_rect
 from sts_bot.config import CalibrationProfile, write_example_profile
 from sts_bot.decision_provider import CodexDecisionProvider, HeuristicDecisionProvider
-from sts_bot.game_catalog import filter_catalog, load_card_catalog, load_power_catalog, load_relic_catalog
 from sts_bot.engine import AutoplayEngine
 from sts_bot.kb_learning import CodexKBLearner
 from sts_bot.knowledge import set_active_kb_overlay_path
@@ -1654,6 +1653,8 @@ def main() -> None:
         return
 
     if args.command == "list-game-catalog":
+        from sts_bot.game_catalog import filter_catalog, load_card_catalog, load_power_catalog, load_relic_catalog
+
         if args.kind == "cards":
             entries = load_card_catalog(workspace_dir=_repo_root())
         elif args.kind == "powers":
