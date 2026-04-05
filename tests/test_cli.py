@@ -692,13 +692,69 @@ class CliHelpersTest(unittest.TestCase):
             to_dict=lambda: {"install_id": "abc123", "unlocked": True},
         )
 
-        with patch("sys.argv", ["sts-lab", "activate-managed-controls", "--license-key", "SMC1-ABC-123"]):
+        with patch("sys.argv", ["sts-lab", "activate-managed-controls", "--license-key", "SMC2.payload.signature"]):
             with patch("sys.stdout", new_callable=io.StringIO) as stdout:
                 main()
 
         rendered = stdout.getvalue()
         self.assertIn("license_mode=unlimited can_use=True expired=True remaining_seconds=0 install_id=abc123", rendered)
-        mock_activate.assert_called_once_with("SMC1-ABC-123", storage_dir=(Path(__file__).resolve().parents[1] / ".managed_controls"))
+        mock_activate.assert_called_once_with("SMC2.payload.signature", storage_dir=(Path(__file__).resolve().parents[1] / ".managed_controls"))
+
+    @patch("sts_bot.cli.open_purchase_page")
+    @patch("sts_bot.cli.load_managed_controls_commerce_config")
+    @patch("sts_bot.cli.get_managed_controls_license_status")
+    def test_main_open_managed_controls_purchase_opens_browser(self, mock_get_status, mock_load_commerce, mock_open_purchase) -> None:
+        mock_get_status.return_value = SimpleNamespace(
+            unlocked=False,
+            can_use=True,
+            expired=False,
+            remaining_seconds=1200,
+            install_id="abc123",
+            message="Trial active",
+            to_dict=lambda: {},
+        )
+        mock_load_commerce.return_value = SimpleNamespace()
+        mock_open_purchase.return_value = "https://example.com/buy?install_id=abc123"
+
+        with patch("sys.argv", ["sts-lab", "open-managed-controls-purchase"]):
+            with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                main()
+
+        rendered = stdout.getvalue()
+        self.assertIn("purchase_url=https://example.com/buy?install_id=abc123", rendered)
+        mock_open_purchase.assert_called_once()
+
+    @patch("sts_bot.cli.issue_managed_controls_license")
+    def test_main_issue_managed_controls_license_renders_token(self, mock_issue_license) -> None:
+        issuer_key = Path(__file__).resolve().parents[1] / "tmp" / "issuer_test_key.pem"
+        issuer_key.parent.mkdir(parents=True, exist_ok=True)
+        issuer_key.write_text("PRIVATE KEY", encoding="utf-8")
+        mock_issue_license.return_value = "SMC2.payload.signature"
+
+        try:
+            with patch(
+                "sys.argv",
+                [
+                    "sts-lab",
+                    "issue-managed-controls-license",
+                    "--install-id",
+                    "SMC-ABC123",
+                    "--licensee",
+                    "Test User",
+                    "--private-key-file",
+                    str(issuer_key),
+                    "--days",
+                    "365",
+                ],
+            ):
+                with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                    main()
+        finally:
+            issuer_key.unlink(missing_ok=True)
+
+        rendered = stdout.getvalue()
+        self.assertIn("license_key=SMC2.payload.signature", rendered)
+        mock_issue_license.assert_called_once()
 
     @patch("sts_bot.cli.get_managed_controls_license_status")
     @patch("sts_bot.cli.ensure_managed_controls_access")

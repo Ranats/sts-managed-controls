@@ -57,6 +57,10 @@ The UI exposes:
 - raw dev console command execution
 - presets for `help`, `help power`, `help block`, `help energy`
 - local license status and unlock-key activation
+- `License` menu with:
+  - license status window
+  - copy install id
+  - open purchase page
 
 Notes:
 
@@ -67,10 +71,11 @@ Notes:
 - If a power is missing, the UI now falls back to `Apply Power (Bridge)` instead of only failing.
 - Card / power / relic images are not wired yet. The current catalog is searchable text only.
 - The UI itself can still open after the trial expires, but gated actions will ask for activation.
+- Purchase-page navigation uses `STS_MANAGED_CONTROLS_PURCHASE_URL` when configured.
 
 ## Trial And Unlock
 
-Managed-control features are now behind a soft local gate:
+Managed-control features are now trial-gated and activation-key based:
 
 - first use starts a 30-minute local trial
 - after expiry, managed writes and bridge commands are blocked
@@ -78,14 +83,30 @@ Managed-control features are now behind a soft local gate:
 
 ```powershell
 python -m sts_bot.cli managed-controls-license-status
+python -m sts_bot.cli open-managed-controls-purchase
+python -m sts_bot.cli open-managed-controls-activation-guide
 python -m sts_bot.cli activate-managed-controls --license-key <KEY>
 ```
 
 Notes:
 
 - local state is stored under `.managed_controls\license_state.json`
-- this is a soft local paywall, not hardened DRM
-- replace the validator before treating it as a serious commercial license system
+- on Windows, trial timestamps are also mirrored into the current-user registry to make casual resets harder
+- activation keys are signed and machine-bound by `install_id`
+- purchase-page config can be supplied through `STS_MANAGED_CONTROLS_PURCHASE_URL` or `.managed_controls\commerce.json`
+- the GUI exposes the same flow from the `License` menu and the inline license controls
+
+Issuer-side command:
+
+```powershell
+python -m sts_bot.cli issue-managed-controls-license --install-id <INSTALL_ID> --licensee "Customer Name" --private-key-file .managed_controls\issuer_private_key.pem --days 365
+```
+
+Automation-friendly issuer service:
+
+```powershell
+python -m sts_bot.cli serve-managed-controls-issuer --private-key-file .managed_controls\issuer_private_key.pem --admin-token <SECRET>
+```
 
 ## Bridge Mod Path
 

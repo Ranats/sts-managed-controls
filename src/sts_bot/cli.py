@@ -8,6 +8,7 @@ import sys
 import tempfile
 import time
 from dataclasses import replace
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from PIL import Image
@@ -38,10 +39,18 @@ from sts_bot.kb_learning import CodexKBLearner
 from sts_bot.knowledge import set_active_kb_overlay_path
 from sts_bot.live_runner import LiveLoopRunner
 from sts_bot.logging import DEFAULT_DB_PATH, RunLogger
+from sts_bot.managed_controls_commerce import (
+    load_managed_controls_commerce_config,
+    open_activation_guide,
+    open_purchase_page,
+)
+from sts_bot.managed_controls_fulfillment_service import ManagedControlsFulfillmentServiceConfig, run_fulfillment_service
+from sts_bot.managed_controls_issuer_service import ManagedControlsIssuerConfig, run_issuer_service
 from sts_bot.managed_controls_license import (
     activate_managed_controls,
     ensure_managed_controls_access,
     get_managed_controls_license_status,
+    issue_managed_controls_license,
     ManagedControlsLicenseError,
 )
 from sts_bot.managed_probe import (
@@ -274,12 +283,44 @@ def build_parser() -> argparse.ArgumentParser:
     managed_control_ui = subparsers.add_parser("managed-control-ui", help="Open the local control panel for managed writes and dev console commands")
     managed_control_ui.add_argument("--profile", type=Path, required=True)
 
-    managed_controls_license_status = subparsers.add_parser("managed-controls-license-status", help="Show local trial/unlock status for STS Managed Controls")
+    managed_controls_license_status = subparsers.add_parser("managed-controls-license-status", help="Show local trial and activation status for STS Managed Controls")
     managed_controls_license_status.add_argument("--json-out", type=Path, default=None)
 
-    activate_managed_controls_cmd = subparsers.add_parser("activate-managed-controls", help="Activate unlimited STS Managed Controls access with a local unlock key")
+    activate_managed_controls_cmd = subparsers.add_parser("activate-managed-controls", help="Activate STS Managed Controls access with a signed activation key")
     activate_managed_controls_cmd.add_argument("--license-key", type=str, required=True)
     activate_managed_controls_cmd.add_argument("--json-out", type=Path, default=None)
+
+    open_purchase_page_cmd = subparsers.add_parser("open-managed-controls-purchase", help="Open the configured purchase page for this install id")
+    open_purchase_page_cmd.add_argument("--json-out", type=Path, default=None)
+
+    open_activation_guide_cmd = subparsers.add_parser("open-managed-controls-activation-guide", help="Open the activation guide for STS Managed Controls")
+    open_activation_guide_cmd.add_argument("--json-out", type=Path, default=None)
+
+    issue_managed_controls_cmd = subparsers.add_parser("issue-managed-controls-license", help="Issue a signed activation key for a specific install id")
+    issue_managed_controls_cmd.add_argument("--install-id", type=str, required=True)
+    issue_managed_controls_cmd.add_argument("--licensee", type=str, required=True)
+    issue_managed_controls_cmd.add_argument("--private-key-file", type=Path, required=True)
+    issue_managed_controls_cmd.add_argument("--plan", type=str, default="standard")
+    issue_managed_controls_cmd.add_argument("--days", type=int, default=365)
+    issue_managed_controls_cmd.add_argument("--no-expiry", action="store_true")
+    issue_managed_controls_cmd.add_argument("--json-out", type=Path, default=None)
+
+    serve_managed_controls_issuer = subparsers.add_parser("serve-managed-controls-issuer", help="Run a small issuer service for automatic activation-key generation")
+    serve_managed_controls_issuer.add_argument("--host", type=str, default="127.0.0.1")
+    serve_managed_controls_issuer.add_argument("--port", type=int, default=8787)
+    serve_managed_controls_issuer.add_argument("--private-key-file", type=Path, required=True)
+    serve_managed_controls_issuer.add_argument("--admin-token", type=str, required=True)
+    serve_managed_controls_issuer.add_argument("--default-plan", type=str, default="standard")
+    serve_managed_controls_issuer.add_argument("--default-days", type=int, default=365)
+
+    serve_managed_controls_fulfillment = subparsers.add_parser("serve-managed-controls-fulfillment", help="Run the hosted fulfillment service for checkout webhooks and activation email delivery")
+    serve_managed_controls_fulfillment.add_argument("--host", type=str, default="127.0.0.1")
+    serve_managed_controls_fulfillment.add_argument("--port", type=int, default=8787)
+    serve_managed_controls_fulfillment.add_argument("--private-key-file", type=Path, required=True)
+    serve_managed_controls_fulfillment.add_argument("--admin-token", type=str, required=True)
+    serve_managed_controls_fulfillment.add_argument("--default-plan", type=str, default="standard")
+    serve_managed_controls_fulfillment.add_argument("--default-days", type=int, default=365)
+    serve_managed_controls_fulfillment.add_argument("--storage-dir", type=Path, default=None)
 
     install_bridge_mod_parser = subparsers.add_parser("install-bridge-mod", help="Build and install the in-process Codex bridge mod into the game mods folder")
     install_bridge_mod_parser.add_argument("--game-dir", type=Path, default=None)
@@ -591,6 +632,99 @@ def main() -> None:
             args.json_out.parent.mkdir(parents=True, exist_ok=True)
             args.json_out.write_text(json.dumps(status.to_dict(), indent=2, ensure_ascii=True), encoding="utf-8")
             print(f"Saved managed controls activation result to {args.json_out}")
+        return
+
+    if args.command == "open-managed-controls-purchase":
+        status = get_managed_controls_license_status(args.command, storage_dir=_repo_root() / ".managed_controls")
+        config = load_managed_controls_commerce_config(storage_dir=_repo_root() / ".managed_controls")
+        purchase_url = open_purchase_page(install_id=status.install_id, config=config)
+        if not purchase_url:
+            print("purchase_error=STS_MANAGED_CONTROLS_PURCHASE_URL is not configured")
+            print(_render_managed_controls_license_status(status))
+            return
+        print(f"purchase_url={purchase_url}")
+        if args.json_out is not None:
+            payload = {"install_id": status.install_id, "purchase_url": purchase_url}
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved managed controls purchase link to {args.json_out}")
+        return
+
+    if args.command == "open-managed-controls-activation-guide":
+        config = load_managed_controls_commerce_config(storage_dir=_repo_root() / ".managed_controls")
+        guide_url = open_activation_guide(config=config)
+        if not guide_url:
+            print("activation_guide_error=No activation guide URL is configured")
+            return
+        print(f"activation_guide_url={guide_url}")
+        if args.json_out is not None:
+            payload = {"activation_guide_url": guide_url}
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved managed controls activation guide URL to {args.json_out}")
+        return
+
+    if args.command == "issue-managed-controls-license":
+        private_key_file = _resolve_repo_path(args.private_key_file)
+        expires_at = None if args.no_expiry else datetime.now(timezone.utc) + timedelta(days=max(1, args.days))
+        try:
+            token = issue_managed_controls_license(
+                install_id=args.install_id,
+                licensee=args.licensee,
+                private_key_pem=private_key_file.read_text(encoding="utf-8"),
+                plan=args.plan,
+                expires_at=expires_at,
+            )
+        except (ManagedControlsLicenseError, OSError) as exc:
+            print(f"license_error={_safe_console_text(str(exc))}")
+            return
+        result = {
+            "install_id": args.install_id,
+            "licensee": args.licensee,
+            "plan": args.plan,
+            "expires_at": "" if expires_at is None else expires_at.isoformat().replace("+00:00", "Z"),
+            "license_key": token,
+        }
+        print(f"license_key={token}")
+        if args.json_out is not None:
+            args.json_out.parent.mkdir(parents=True, exist_ok=True)
+            args.json_out.write_text(json.dumps(result, indent=2, ensure_ascii=True), encoding="utf-8")
+            print(f"Saved managed controls issued license to {args.json_out}")
+        return
+
+    if args.command == "serve-managed-controls-issuer":
+        private_key_file = _resolve_repo_path(args.private_key_file)
+        config = ManagedControlsIssuerConfig(
+            host=args.host,
+            port=args.port,
+            private_key_file=private_key_file,
+            admin_token=args.admin_token,
+            default_plan=args.default_plan,
+            default_days=args.default_days,
+        )
+        print(f"issuer_service listening=http://{config.host}:{config.port} plan={config.default_plan} days={config.default_days}")
+        run_issuer_service(config)
+        return
+
+    if args.command == "serve-managed-controls-fulfillment":
+        private_key_file = _resolve_repo_path(args.private_key_file)
+        storage_dir = _resolve_repo_path(args.storage_dir) if args.storage_dir is not None else (_repo_root() / ".managed_controls")
+        commerce = load_managed_controls_commerce_config(storage_dir=storage_dir)
+        config = ManagedControlsFulfillmentServiceConfig(
+            host=args.host,
+            port=args.port,
+            private_key_file=private_key_file,
+            admin_token=args.admin_token,
+            default_plan=args.default_plan,
+            default_days=args.default_days,
+            storage_dir=storage_dir,
+            commerce=commerce,
+        )
+        print(
+            f"fulfillment_service listening=http://{config.host}:{config.port} provider={commerce.provider} "
+            f"purchase_url={'configured' if commerce.purchase_url else 'missing'}"
+        )
+        run_fulfillment_service(config)
         return
 
     if args.command != "managed-control-ui":

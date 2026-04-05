@@ -15,10 +15,6 @@ It is intended for:
 - testers and balance iteration
 - debugging live game state without OCR-only workflows
 
-It is **not** being released primarily as an autoplay product.
-
-There is still automation and live-input research in this source tree, but that work is experimental and should be treated as a separate track. For public distribution, the main product is the managed-controls toolset.
-
 ## Core Features
 
 - Probe live state through the managed CLR snapshot path.
@@ -114,20 +110,20 @@ python -m sts_bot.cli bridge-obtain-relic --relic-type Anchor --count 1
 
 ## Trial And Unlock
 
-The current public-facing managed-controls build assumes a soft local trial flow:
+Each install starts with a 30-minute trial.
 
-- first use starts a 30-minute local trial
 - after expiry, managed write and bridge actions are blocked
-- unlock unlimited mode with a local activation key
+- activate unlimited access with a signed activation key issued for your install id
+- open the purchase page from the GUI `License` menu or via CLI when `STS_MANAGED_CONTROLS_PURCHASE_URL` is configured
 
 Commands:
 
 ```powershell
 python -m sts_bot.cli managed-controls-license-status
 python -m sts_bot.cli activate-managed-controls --license-key <KEY>
+python -m sts_bot.cli open-managed-controls-purchase
+python -m sts_bot.cli open-managed-controls-activation-guide
 ```
-
-This is a soft local gate, not hardened DRM. It is suitable for small-scale release experiments, not for serious license enforcement.
 
 ## Troubleshooting
 
@@ -170,6 +166,7 @@ Release planning:
 - `docs/release/release_runbook.md`
 - `docs/release/public_release_checklist.md`
 - `docs/release/listing_copy.md`
+- `docs/release/license_fulfillment.md`
 
 Bundled media:
 
@@ -178,16 +175,8 @@ Bundled media:
 - `docs/release/Slay the Spire 2 - 2026-04-03 21-21-07.mp4`
 - `docs/release/Slay the Spire 2 - 2026-04-05 18-24-09.mp4`
 
-## Public Positioning
-
-The clean public framing is:
+## Positioning
 
 - local modding and debugging toolkit
 - single-player runtime control panel
 - sandbox for testing cards, powers, relics, and combat setups
-
-That positioning is better for GitHub, Nexus, Discord, and Reddit than leading with autoplay or trainer language.
-
-## Repository Note
-
-The current repository still contains autoplay and automation research code. For public messaging, that work should be treated as separate and experimental. If you later want a cleaner product split, moving autoplay into a different repository is a good idea.

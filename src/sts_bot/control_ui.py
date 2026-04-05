@@ -6,12 +6,17 @@ import threading
 import time
 import tkinter as tk
 from pathlib import Path
-from tkinter import ttk
+from tkinter import messagebox, ttk
 
 from sts_bot.config import CalibrationProfile
 from sts_bot.dev_console import enable_full_console, run_dev_console_command
 from sts_bot.game_catalog import CatalogBundle, CatalogEntry, filter_catalog, load_catalog_bundle
 from sts_bot.io_runtime import create_runtime
+from sts_bot.managed_controls_commerce import (
+    load_managed_controls_commerce_config,
+    open_activation_guide,
+    open_purchase_page,
+)
 from sts_bot.managed_controls_license import (
     activate_managed_controls,
     ensure_managed_controls_access,
@@ -49,6 +54,7 @@ class ManagedControlWindow:
         self._root.title("STS Managed Controls")
         self._root.geometry("1100x980")
         self._queue: queue.Queue[str] = queue.Queue()
+        self._license_window: tk.Toplevel | None = None
         self._block_maintain_stop = threading.Event()
         self._block_maintain_thread: threading.Thread | None = None
         self._energy_maintain_stop = threading.Event()
@@ -110,6 +116,7 @@ class ManagedControlWindow:
         self._root.mainloop()
 
     def _build(self) -> None:
+        self._build_menu()
         frame = ttk.Frame(self._root, padding=12)
         frame.pack(fill=tk.BOTH, expand=True)
         frame.columnconfigure(1, weight=1)
@@ -246,12 +253,27 @@ class ManagedControlWindow:
         ttk.Entry(frame, textvariable=self.license_install_id_var, width=22).grid(row=22, column=5, columnspan=2, sticky="ew", pady=4)
         ttk.Label(frame, text="License Key").grid(row=23, column=0, sticky=tk.W, pady=4)
         ttk.Entry(frame, textvariable=self.license_key_var, width=48).grid(row=23, column=1, columnspan=4, sticky="ew", pady=4)
-        ttk.Button(frame, text="Refresh License", command=lambda: self._run_async(self._refresh_license_status, requires_license=False)).grid(row=23, column=5, sticky="ew", pady=4)
+        ttk.Button(frame, text="Purchase Page", command=lambda: self._run_async(self._open_purchase_page, requires_license=False)).grid(row=23, column=5, sticky="ew", pady=4)
         ttk.Button(frame, text="Activate", command=lambda: self._run_async(self._activate_license, requires_license=False)).grid(row=23, column=6, sticky="ew", pady=4)
+        ttk.Button(frame, text="Activation Guide", command=lambda: self._run_async(self._open_activation_guide, requires_license=False)).grid(row=24, column=4, sticky="ew", pady=4)
+        ttk.Button(frame, text="Refresh License", command=lambda: self._run_async(self._refresh_license_status, requires_license=False)).grid(row=24, column=5, sticky="ew", pady=4)
+        ttk.Button(frame, text="Copy Install ID", command=lambda: self._run_async(self._copy_install_id, requires_license=False)).grid(row=24, column=6, sticky="ew", pady=4)
 
         self.log = tk.Text(frame, wrap=tk.WORD, height=20)
-        self.log.grid(row=24, column=0, columnspan=7, sticky="nsew", pady=(12, 0))
-        frame.rowconfigure(24, weight=1)
+        self.log.grid(row=25, column=0, columnspan=7, sticky="nsew", pady=(12, 0))
+        frame.rowconfigure(25, weight=1)
+
+    def _build_menu(self) -> None:
+        menu = tk.Menu(self._root)
+        license_menu = tk.Menu(menu, tearoff=False)
+        license_menu.add_command(label="License Status...", command=self._show_license_window)
+        license_menu.add_command(label="Refresh License", command=lambda: self._run_async(self._refresh_license_status, requires_license=False))
+        license_menu.add_separator()
+        license_menu.add_command(label="Copy Install ID", command=lambda: self._run_async(self._copy_install_id, requires_license=False))
+        license_menu.add_command(label="Open Purchase Page", command=lambda: self._run_async(self._open_purchase_page, requires_license=False))
+        license_menu.add_command(label="Open Activation Guide", command=lambda: self._run_async(self._open_activation_guide, requires_license=False))
+        menu.add_cascade(label="License", menu=license_menu)
+        self._root.config(menu=menu)
 
     def _build_catalog_tab(self, notebook: ttk.Notebook, title: str, on_select) -> tk.Listbox:
         container = ttk.Frame(notebook, padding=4)
@@ -314,6 +336,72 @@ class ManagedControlWindow:
         self._apply_license_status(status)
         self._emit("license_activated unlimited access enabled")
 
+    def _show_license_window(self) -> None:
+        if self._license_window is not None and self._license_window.winfo_exists():
+            self._license_window.deiconify()
+            self._license_window.lift()
+            self._license_window.focus_force()
+            return
+        window = tk.Toplevel(self._root)
+        window.title("STS Managed Controls License")
+        window.geometry("760x220")
+        window.transient(self._root)
+        window.columnconfigure(1, weight=1)
+        self._license_window = window
+        window.protocol("WM_DELETE_WINDOW", self._close_license_window)
+
+        ttk.Label(window, textvariable=self.license_status_var, wraplength=700).grid(row=0, column=0, columnspan=3, sticky="w", padx=12, pady=(12, 8))
+        ttk.Label(window, text="Install ID").grid(row=1, column=0, sticky="w", padx=12, pady=4)
+        ttk.Entry(window, textvariable=self.license_install_id_var, width=56).grid(row=1, column=1, sticky="ew", padx=12, pady=4)
+        ttk.Button(window, text="Copy Install ID", command=lambda: self._run_async(self._copy_install_id, requires_license=False)).grid(row=1, column=2, sticky="ew", padx=(0, 12), pady=4)
+        ttk.Label(window, text="Activation Key").grid(row=2, column=0, sticky="w", padx=12, pady=4)
+        ttk.Entry(window, textvariable=self.license_key_var, width=56).grid(row=2, column=1, sticky="ew", padx=12, pady=4)
+        ttk.Button(window, text="Activate", command=lambda: self._run_async(self._activate_license, requires_license=False)).grid(row=2, column=2, sticky="ew", padx=(0, 12), pady=4)
+        ttk.Button(window, text="Purchase Page", command=lambda: self._run_async(self._open_purchase_page, requires_license=False)).grid(row=3, column=1, sticky="w", padx=12, pady=(8, 12))
+        ttk.Button(window, text="Activation Guide", command=lambda: self._run_async(self._open_activation_guide, requires_license=False)).grid(row=3, column=1, sticky="e", padx=(12, 120), pady=(8, 12))
+        ttk.Button(window, text="Refresh", command=lambda: self._run_async(self._refresh_license_status, requires_license=False)).grid(row=3, column=2, sticky="ew", padx=(0, 12), pady=(8, 12))
+
+    def _close_license_window(self) -> None:
+        if self._license_window is not None and self._license_window.winfo_exists():
+            self._license_window.destroy()
+        self._license_window = None
+
+    def _copy_install_id(self) -> None:
+        install_id = self.license_install_id_var.get().strip()
+        if not install_id:
+            raise ManagedControlsLicenseError("install id is not available yet")
+        self._root.after(0, lambda: self._copy_text_to_clipboard(install_id))
+        self._emit(f"license_install_id_copied {install_id}")
+
+    def _open_purchase_page(self) -> None:
+        install_id = self.license_install_id_var.get().strip()
+        if not install_id:
+            status = get_managed_controls_license_status("purchase-page", storage_dir=self._repo_root / ".managed_controls")
+            self._apply_license_status(status)
+            install_id = status.install_id
+        config = load_managed_controls_commerce_config(storage_dir=self._repo_root / ".managed_controls")
+        purchase_url = open_purchase_page(install_id=install_id, config=config)
+        if not purchase_url:
+            self._root.after(
+                0,
+                lambda: messagebox.showinfo(
+                    "Purchase Page Not Configured",
+                    "Set STS_MANAGED_CONTROLS_PURCHASE_URL or .managed_controls\\commerce.json with your checkout page URL, then try again.",
+                    parent=self._license_window or self._root,
+                ),
+            )
+            self._emit("purchase_url_missing STS_MANAGED_CONTROLS_PURCHASE_URL is not configured")
+            return
+        self._emit(f"purchase_url_opened {purchase_url}")
+
+    def _open_activation_guide(self) -> None:
+        config = load_managed_controls_commerce_config(storage_dir=self._repo_root / ".managed_controls")
+        guide_url = open_activation_guide(config=config)
+        if not guide_url:
+            self._emit("activation_guide_missing no activation guide URL is configured")
+            return
+        self._emit(f"activation_guide_opened {guide_url}")
+
     def _apply_license_status(self, status) -> None:
         def update() -> None:
             self.license_install_id_var.set(status.install_id)
@@ -328,6 +416,11 @@ class ManagedControlWindow:
             self.license_status_var.set(text)
 
         self._root.after(0, update)
+
+    def _copy_text_to_clipboard(self, value: str) -> None:
+        self._root.clipboard_clear()
+        self._root.clipboard_append(value)
+        self._root.update_idletasks()
 
     def _refresh_catalogs(self) -> None:
         bundle = load_catalog_bundle(workspace_dir=self._repo_root)

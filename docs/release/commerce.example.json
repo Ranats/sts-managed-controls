@@ -1,0 +1,10 @@
+{
+  "provider": "lemonsqueezy",
+  "purchase_url": "https://checkout.lemonsqueezy.com/buy/your-product-id",
+  "activation_guide_url": "https://github.com/Ranats/sts-managed-controls#trial-and-unlock",
+  "support_url": "mailto:you@example.com",
+  "lemonsqueezy_webhook_secret": "replace-me",
+  "resend_api_key": "re_xxx",
+  "email_from": "STS Managed Controls <licenses@auth.cilabworks.com>",
+  "email_reply_to": "support@cilabworks.com"
+}
