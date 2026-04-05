@@ -17,7 +17,7 @@ ENV_RESEND_API_KEY = "STS_MANAGED_CONTROLS_RESEND_API_KEY"
 ENV_EMAIL_FROM = "STS_MANAGED_CONTROLS_EMAIL_FROM"
 ENV_EMAIL_REPLY_TO = "STS_MANAGED_CONTROLS_EMAIL_REPLY_TO"
 COMMERCE_FILE_NAME = "commerce.json"
-DEFAULT_ACTIVATION_GUIDE_URL = "https://github.com/Ranats/sts-managed-controls#trial-and-unlock"
+DEFAULT_ACTIVATION_GUIDE_URL = "https://github.com/Ranats/sts2-managed-controls#trial-and-unlock"
 DEFAULT_PROVIDER = "lemonsqueezy"
 
 

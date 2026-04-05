@@ -28,7 +28,7 @@ Example:
 ```json
 {
   "purchase_url": "https://your-checkout-url.example/checkout",
-  "activation_guide_url": "https://github.com/Ranats/sts-managed-controls#trial-and-unlock",
+  "activation_guide_url": "https://github.com/Ranats/sts2-managed-controls#trial-and-unlock",
   "support_url": "mailto:you@example.com"
 }
 ```
