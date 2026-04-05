@@ -15,7 +15,6 @@ from PIL import Image
 from PIL import ImageChops, ImageStat
 
 from sts_bot.adapters.mock import MockAdapter
-from sts_bot.adapters.windows_stub import WindowsStsAdapter
 from sts_bot.analysis import (
     analyze_builds,
     build_fix_request_markdown,
@@ -33,7 +32,6 @@ from sts_bot.dev_console import enable_full_console, run_dev_console_command
 from sts_bot.game_catalog import filter_catalog, load_card_catalog, load_power_catalog, load_relic_catalog
 from sts_bot.engine import AutoplayEngine
 from sts_bot.input import backend_candidates
-from sts_bot.input_backends import WindowMessageInputBackend
 from sts_bot.io_runtime import create_runtime
 from sts_bot.kb_learning import CodexKBLearner
 from sts_bot.knowledge import set_active_kb_overlay_path
@@ -77,16 +75,49 @@ from sts_bot.mod_bridge import (
 from sts_bot.models import ScreenKind
 from sts_bot.observe import append_jsonl, state_to_record
 from sts_bot.policy import HeuristicPolicy
-from sts_bot.windowing import (
-    CoordinateTransform,
-    WindowLocator,
-    WindowSelector,
-    cursor_position,
-    enumerate_child_windows,
-    foreground_window_title,
-    gui_thread_state,
-)
-from sts_bot.windows_api import focus_window
+
+try:
+    from sts_bot.adapters.windows_stub import WindowsStsAdapter
+    from sts_bot.input_backends import WindowMessageInputBackend
+    from sts_bot.windowing import (
+        CoordinateTransform,
+        WindowLocator,
+        WindowSelector,
+        cursor_position,
+        enumerate_child_windows,
+        foreground_window_title,
+        gui_thread_state,
+    )
+    from sts_bot.windows_api import focus_window
+    _WINDOWS_IMPORT_ERROR: Exception | None = None
+except Exception as exc:  # pragma: no cover - exercised on non-Windows hosts
+    WindowsStsAdapter = None  # type: ignore[assignment]
+    WindowMessageInputBackend = None  # type: ignore[assignment]
+    CoordinateTransform = None  # type: ignore[assignment]
+    WindowLocator = None  # type: ignore[assignment]
+    WindowSelector = None  # type: ignore[assignment]
+    _WINDOWS_IMPORT_ERROR = exc
+
+    def _raise_windows_only() -> None:
+        message = "This command is only available on Windows."
+        if _WINDOWS_IMPORT_ERROR is not None:
+            message = f"{message} ({_WINDOWS_IMPORT_ERROR})"
+        raise RuntimeError(message)
+
+    def cursor_position():  # type: ignore[no-redef]
+        _raise_windows_only()
+
+    def enumerate_child_windows(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_windows_only()
+
+    def foreground_window_title():  # type: ignore[no-redef]
+        _raise_windows_only()
+
+    def gui_thread_state(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_windows_only()
+
+    def focus_window(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_windows_only()
 
 
 def _stable_live_state(adapter: WindowsStsAdapter, *, fast: bool = True, attempts: int = 3, delay_seconds: float = 0.18):
