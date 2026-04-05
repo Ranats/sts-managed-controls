@@ -28,14 +28,10 @@ from sts_bot.analysis import (
 from sts_bot.calibration import annotate_profile, crop_to_file, parse_rect
 from sts_bot.config import CalibrationProfile, write_example_profile
 from sts_bot.decision_provider import CodexDecisionProvider, HeuristicDecisionProvider
-from sts_bot.dev_console import enable_full_console, run_dev_console_command
 from sts_bot.game_catalog import filter_catalog, load_card_catalog, load_power_catalog, load_relic_catalog
 from sts_bot.engine import AutoplayEngine
-from sts_bot.input import backend_candidates
-from sts_bot.io_runtime import create_runtime
 from sts_bot.kb_learning import CodexKBLearner
 from sts_bot.knowledge import set_active_kb_overlay_path
-from sts_bot.live_runner import LiveLoopRunner
 from sts_bot.logging import DEFAULT_DB_PATH, RunLogger
 from sts_bot.managed_controls_commerce import (
     load_managed_controls_commerce_config,
@@ -50,15 +46,6 @@ from sts_bot.managed_controls_license import (
     get_managed_controls_license_status,
     issue_managed_controls_license,
     ManagedControlsLicenseError,
-)
-from sts_bot.managed_probe import (
-    alias_managed_powers,
-    ManagedProbeError,
-    probe_managed_numeric,
-    set_managed_player_block,
-    set_managed_player_energy,
-    set_managed_player_gold,
-    set_managed_power_amount,
 )
 from sts_bot.mod_bridge import (
     install_bridge_mod,
@@ -118,6 +105,67 @@ except Exception as exc:  # pragma: no cover - exercised on non-Windows hosts
 
     def focus_window(*_args, **_kwargs):  # type: ignore[no-redef]
         _raise_windows_only()
+
+try:
+    from sts_bot.dev_console import enable_full_console, run_dev_console_command
+    from sts_bot.input import backend_candidates
+    from sts_bot.io_runtime import create_runtime
+    from sts_bot.live_runner import LiveLoopRunner
+    from sts_bot.managed_probe import (
+        alias_managed_powers,
+        ManagedProbeError,
+        probe_managed_numeric,
+        set_managed_player_block,
+        set_managed_player_energy,
+        set_managed_player_gold,
+        set_managed_power_amount,
+    )
+    _RUNTIME_IMPORT_ERROR: Exception | None = None
+except Exception as exc:  # pragma: no cover - exercised on non-Windows hosts
+    _RUNTIME_IMPORT_ERROR = exc
+
+    class ManagedProbeError(RuntimeError):  # type: ignore[no-redef]
+        pass
+
+    def _raise_runtime_only() -> None:
+        message = "This command is not available in the current runtime."
+        if _RUNTIME_IMPORT_ERROR is not None:
+            message = f"{message} ({_RUNTIME_IMPORT_ERROR})"
+        raise RuntimeError(message)
+
+    def enable_full_console(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
+
+    def run_dev_console_command(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
+
+    def backend_candidates(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
+
+    def create_runtime(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
+
+    class LiveLoopRunner:  # type: ignore[no-redef]
+        def __init__(self, *_args, **_kwargs) -> None:
+            _raise_runtime_only()
+
+    def alias_managed_powers(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
+
+    def probe_managed_numeric(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
+
+    def set_managed_player_block(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
+
+    def set_managed_player_energy(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
+
+    def set_managed_player_gold(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
+
+    def set_managed_power_amount(*_args, **_kwargs):  # type: ignore[no-redef]
+        _raise_runtime_only()
 
 
 def _stable_live_state(adapter: WindowsStsAdapter, *, fast: bool = True, attempts: int = 3, delay_seconds: float = 0.18):
