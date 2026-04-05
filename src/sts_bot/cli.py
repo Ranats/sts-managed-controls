@@ -46,18 +46,6 @@ from sts_bot.managed_controls_license import (
     issue_managed_controls_license,
     ManagedControlsLicenseError,
 )
-from sts_bot.mod_bridge import (
-    install_bridge_mod,
-    send_bridge_add_card,
-    send_bridge_apply_power,
-    send_bridge_clear_auto_power_on_combat_start,
-    send_bridge_jump_to_map_coord,
-    send_bridge_replace_master_deck,
-    send_bridge_obtain_relic,
-    send_bridge_set_auto_power_on_combat_start,
-    send_bridge_tune_card_var,
-    send_bridge_tune_relic_var,
-)
 from sts_bot.models import ScreenKind
 from sts_bot.observe import append_jsonl, state_to_record
 from sts_bot.policy import HeuristicPolicy
@@ -181,6 +169,34 @@ def _stable_live_state(adapter: WindowsStsAdapter, *, fast: bool = True, attempt
         if state.available_actions:
             return state
     return best_state
+
+
+def _load_mod_bridge():
+    from sts_bot.mod_bridge import (
+        install_bridge_mod,
+        send_bridge_add_card,
+        send_bridge_apply_power,
+        send_bridge_clear_auto_power_on_combat_start,
+        send_bridge_jump_to_map_coord,
+        send_bridge_obtain_relic,
+        send_bridge_replace_master_deck,
+        send_bridge_set_auto_power_on_combat_start,
+        send_bridge_tune_card_var,
+        send_bridge_tune_relic_var,
+    )
+
+    return {
+        "install_bridge_mod": install_bridge_mod,
+        "send_bridge_add_card": send_bridge_add_card,
+        "send_bridge_apply_power": send_bridge_apply_power,
+        "send_bridge_clear_auto_power_on_combat_start": send_bridge_clear_auto_power_on_combat_start,
+        "send_bridge_jump_to_map_coord": send_bridge_jump_to_map_coord,
+        "send_bridge_obtain_relic": send_bridge_obtain_relic,
+        "send_bridge_replace_master_deck": send_bridge_replace_master_deck,
+        "send_bridge_set_auto_power_on_combat_start": send_bridge_set_auto_power_on_combat_start,
+        "send_bridge_tune_card_var": send_bridge_tune_card_var,
+        "send_bridge_tune_relic_var": send_bridge_tune_relic_var,
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1474,8 +1490,9 @@ def main() -> None:
         return
 
     if args.command == "install-bridge-mod":
+        bridge = _load_mod_bridge()
         try:
-            result = install_bridge_mod(game_dir=args.game_dir, workspace_dir=_repo_root())
+            result = bridge["install_bridge_mod"](game_dir=args.game_dir, workspace_dir=_repo_root())
         except ManagedProbeError as exc:
             print(f"bridge_error={_safe_console_text(str(exc))}")
             return
@@ -1490,8 +1507,9 @@ def main() -> None:
         return
 
     if args.command == "bridge-apply-power":
+        bridge = _load_mod_bridge()
         try:
-            result = send_bridge_apply_power(
+            result = bridge["send_bridge_apply_power"](
                 power_type=args.power_type,
                 amount=args.value,
                 target=args.target,
@@ -1509,8 +1527,9 @@ def main() -> None:
         return
 
     if args.command == "bridge-add-card":
+        bridge = _load_mod_bridge()
         try:
-            result = send_bridge_add_card(
+            result = bridge["send_bridge_add_card"](
                 card_type=args.card_type,
                 destination=args.destination,
                 count=args.count,
@@ -1528,8 +1547,9 @@ def main() -> None:
         return
 
     if args.command == "bridge-replace-master-deck":
+        bridge = _load_mod_bridge()
         try:
-            result = send_bridge_replace_master_deck(
+            result = bridge["send_bridge_replace_master_deck"](
                 card_type=args.card_type,
                 count=args.count,
                 upgrade_count=args.upgrade_count,
@@ -1546,8 +1566,9 @@ def main() -> None:
         return
 
     if args.command == "bridge-obtain-relic":
+        bridge = _load_mod_bridge()
         try:
-            result = send_bridge_obtain_relic(
+            result = bridge["send_bridge_obtain_relic"](
                 relic_type=args.relic_type,
                 count=args.count,
             )
@@ -1563,8 +1584,9 @@ def main() -> None:
         return
 
     if args.command == "bridge-set-auto-power":
+        bridge = _load_mod_bridge()
         try:
-            result = send_bridge_set_auto_power_on_combat_start(
+            result = bridge["send_bridge_set_auto_power_on_combat_start"](
                 power_type=args.power_type,
                 amount=args.value,
                 target=args.target,
@@ -1582,8 +1604,9 @@ def main() -> None:
         return
 
     if args.command == "bridge-clear-auto-power":
+        bridge = _load_mod_bridge()
         try:
-            result = send_bridge_clear_auto_power_on_combat_start(
+            result = bridge["send_bridge_clear_auto_power_on_combat_start"](
                 power_type=args.power_type,
                 target=args.target,
                 enemy_index=args.enemy_index,
@@ -1600,8 +1623,9 @@ def main() -> None:
         return
 
     if args.command == "bridge-jump-map":
+        bridge = _load_mod_bridge()
         try:
-            result = send_bridge_jump_to_map_coord(col=args.col, row=args.row)
+            result = bridge["send_bridge_jump_to_map_coord"](col=args.col, row=args.row)
         except ManagedProbeError as exc:
             print(f"bridge_error={_safe_console_text(str(exc))}")
             return
@@ -1614,8 +1638,9 @@ def main() -> None:
         return
 
     if args.command == "bridge-tune-card":
+        bridge = _load_mod_bridge()
         try:
-            result = send_bridge_tune_card_var(
+            result = bridge["send_bridge_tune_card_var"](
                 card_type=args.card_type,
                 var_name=args.var_name,
                 amount=args.value,
@@ -1634,8 +1659,9 @@ def main() -> None:
         return
 
     if args.command == "bridge-tune-relic":
+        bridge = _load_mod_bridge()
         try:
-            result = send_bridge_tune_relic_var(
+            result = bridge["send_bridge_tune_relic_var"](
                 relic_type=args.relic_type,
                 var_name=args.var_name,
                 amount=args.value,
