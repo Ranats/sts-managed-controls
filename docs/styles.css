@@ -144,6 +144,47 @@ h3,
   font-size: 1.05rem;
 }
 
+.topbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.language-switcher a,
+.language-switcher span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.language-switcher-current {
+  background: rgba(255, 217, 94, 0.14);
+  color: var(--accent-2);
+}
+
+.language-switcher a:hover {
+  color: var(--accent-2);
+}
+
 .topnav a:hover,
 .footer-links a:hover {
   color: var(--accent-2);
@@ -606,6 +647,11 @@ h3 {
 
   .topnav {
     gap: 12px;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
   }
 
   .hero {
