@@ -539,6 +539,34 @@ h3 {
   margin-top: 18px;
 }
 
+.purchase-form {
+  display: grid;
+  gap: 12px;
+}
+
+.field-label {
+  font-family: "Rajdhani", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.field-input {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: inherit;
+}
+
+.field-help {
+  margin: 0;
+}
+
 @media (max-width: 1080px) {
   .hero,
   .proof-grid,

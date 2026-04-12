@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Purchase | STS2 Managed Controls</title>
+  <meta
+    name="description"
+    content="Purchase step for STS2 Managed Controls. Paste your install ID and continue to the Lemon Squeezy checkout."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-policy">
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">SMC</span>
+        <span class="brand-copy">
+          <strong>STS2 Managed Controls</strong>
+          <span>Purchase Step</span>
+        </span>
+      </a>
+      <div class="policy-actions">
+        <a class="button button-secondary" href="activation.html">Activation Guide</a>
+        <a class="button button-ghost" href="index.html">Back to Home</a>
+      </div>
+    </header>
+
+    <main class="policy-main">
+      <article class="policy-card">
+        <p class="eyebrow">Checkout</p>
+        <h1>Enter your Install ID before payment</h1>
+        <p>
+          STS2 Managed Controls issues activation keys against the install ID shown by the app. To keep automatic
+          fulfillment aligned with your machine-bound license flow, start here instead of opening the bare checkout URL.
+        </p>
+      </article>
+
+      <article class="policy-card">
+        <h2>How to get your Install ID</h2>
+        <ol>
+          <li>Launch the STS2 Managed Controls desktop UI.</li>
+          <li>Open <code>License -&gt; License Status...</code>.</li>
+          <li>Copy the Install ID shown in the dialog.</li>
+          <li>Paste it below and continue to Lemon Squeezy.</li>
+        </ol>
+      </article>
+
+      <article class="policy-card">
+        <h2>Continue to checkout</h2>
+        <form class="purchase-form" id="purchase-form">
+          <label class="field-label" for="install-id">Install ID</label>
+          <input
+            id="install-id"
+            class="field-input"
+            name="install_id"
+            type="text"
+            placeholder="SMC-1234567890ABCDEF"
+            autocomplete="off"
+            required
+          >
+          <p class="field-help">
+            The site appends both <code>install_id</code> and <code>checkout[custom][install_id]</code> to the checkout URL.
+          </p>
+          <div class="policy-actions">
+            <button class="button button-primary" type="submit">Continue to Lemon Squeezy</button>
+            <a class="button button-secondary" href="mailto:support@auth.cilabworks.com">Need support?</a>
+          </div>
+        </form>
+      </article>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const checkoutBase = "https://cilabworks.lemonsqueezy.com/checkout/buy/822477c0-6c45-45b2-9bce-7e84c5ec4c86";
+      const form = document.getElementById("purchase-form");
+      const input = document.getElementById("install-id");
+      const params = new URLSearchParams(window.location.search);
+      const existingInstallId = params.get("install_id");
+
+      if (existingInstallId) {
+        input.value = existingInstallId;
+      }
+
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        const installId = input.value.trim();
+        if (!installId) {
+          input.focus();
+          return;
+        }
+
+        const checkoutUrl = new URL(checkoutBase);
+        checkoutUrl.searchParams.set("install_id", installId);
+        checkoutUrl.searchParams.set("checkout[custom][install_id]", installId);
+        window.location.href = checkoutUrl.toString();
+      });
+    }());
+  </script>
+</body>
+</html>
