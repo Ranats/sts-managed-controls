@@ -403,6 +403,15 @@ h3 {
   overflow: hidden;
 }
 
+.proof-video-card {
+  display: grid;
+  gap: 14px;
+}
+
+.proof-video-card p {
+  margin: 0;
+}
+
 .feature-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
