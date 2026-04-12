@@ -33,6 +33,26 @@ body {
   font-family: "Space Grotesk", sans-serif;
 }
 
+body.theme-jp {
+  font-family: "Noto Sans JP", "Space Grotesk", sans-serif;
+}
+
+.theme-jp {
+  font-family: "Noto Sans JP", "Space Grotesk", sans-serif;
+}
+
+.theme-jp .brand-copy strong,
+.theme-jp .topnav,
+.theme-jp .eyebrow,
+.theme-jp h1,
+.theme-jp h2,
+.theme-jp h3,
+.theme-jp .button,
+.theme-jp .price-line strong,
+.theme-jp .field-label {
+  font-family: "Noto Sans JP", "Space Grotesk", sans-serif;
+}
+
 body::before {
   position: fixed;
   inset: 0;
