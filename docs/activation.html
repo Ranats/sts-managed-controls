@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activation Guide | STS2 Managed Controls</title>
+  <meta
+    name="description"
+    content="Activation guide for STS2 Managed Controls. Learn how the local trial, install ID, Lemon Squeezy checkout, and activation key flow work."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-policy">
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">SMC</span>
+        <span class="brand-copy">
+          <strong>STS2 Managed Controls</strong>
+          <span>Activation Guide</span>
+        </span>
+      </a>
+      <div class="policy-actions">
+        <a class="button button-secondary" href="index.html">Back to Home</a>
+        <a class="button button-primary" href="https://cilabworks.lemonsqueezy.com/checkout/buy/822477c0-6c45-45b2-9bce-7e84c5ec4c86">Open Checkout</a>
+      </div>
+    </header>
+
+    <main class="policy-main">
+      <article class="policy-card">
+        <p class="eyebrow">Activation</p>
+        <h1>How the unlock flow works</h1>
+        <p>
+          STS2 Managed Controls starts with a 30-minute local trial. After that, managed write actions and bridge
+          commands are gated until the tool receives a valid activation key for the current install ID.
+        </p>
+      </article>
+
+      <article class="policy-card">
+        <h2>Buyer flow</h2>
+        <ol>
+          <li>Launch the desktop UI for STS2 Managed Controls.</li>
+          <li>Open <code>License -&gt; License Status...</code> and copy the current install ID.</li>
+          <li>Open the Lemon Squeezy checkout and complete payment.</li>
+          <li>After payment processing, receive an activation key by email.</li>
+          <li>Paste the key into the desktop UI or run <code>python -m sts_bot.cli activate-managed-controls --license-key &lt;KEY&gt;</code>.</li>
+        </ol>
+      </article>
+
+      <article class="policy-card">
+        <h2>What the key does</h2>
+        <ul>
+          <li>The activation key unlocks unlimited access for the licensed install ID.</li>
+          <li>The key is intended for this local single-player desktop toolkit only.</li>
+          <li>Changing hardware, reinstalling the operating system, or major environment changes can require support help.</li>
+        </ul>
+      </article>
+
+      <article class="policy-card">
+        <h2>Support</h2>
+        <p>
+          If delivery fails or the activation key does not work as expected, contact
+          <a href="mailto:support@auth.cilabworks.com">support@auth.cilabworks.com</a>.
+          Include your purchase email and install ID when possible.
+        </p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
