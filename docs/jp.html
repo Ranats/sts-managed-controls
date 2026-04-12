@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>STS2 Managed Controls | 日本語ガイド</title>
+  <title>STS2 Managed Controls | Slay the Spire 2向けローカルツール</title>
   <meta
     name="description"
-    content="Slay the Spire 2 向けのローカル単体ツール。ライブ状態の確認、ゴールド・エナジー・パワー・カード・レリック操作をデスクトップUIから行えます。"
+    content="Slay the Spire 2の状態確認や各種操作を、ひとつのデスクトップツールでまとめて行えます。ビルド検証、modテスト、戦闘状況の再現を素早く回したい人向け。"
   >
   <meta property="og:title" content="STS2 Managed Controls">
   <meta
     property="og:description"
-    content="Slay the Spire 2 向けのローカル単体ランタイム制御ツール。管理状態の確認と各種操作をデスクトップUIから実行できます。"
+    content="Slay the Spire 2向けのローカル単体プレイ用ツール。ゲームの状態確認、リソース調整、パワー付与、カード追加などをデスクトップUIから行えます。"
   >
   <meta property="og:type" content="website">
   <meta property="og:image" content="release/gui.png">
@@ -30,13 +30,13 @@
         <span class="brand-mark">SMC</span>
         <span class="brand-copy">
           <strong>STS2 Managed Controls</strong>
-          <span>ローカル単体プレイ向けランタイム制御ツール</span>
+          <span>Slay the Spire 2向けローカル単体プレイ用ツール</span>
         </span>
       </a>
       <nav class="topnav" aria-label="Primary">
         <a href="#features">機能</a>
         <a href="#proof">デモ</a>
-        <a href="#activation">導入</a>
+        <a href="#activation">導入方法</a>
         <a href="#faq">FAQ</a>
       </nav>
       <div class="topbar-actions">
@@ -51,44 +51,45 @@
     <main id="top">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">Slay the Spire 2 向け Windows デスクトップツール</p>
-          <h1>ライブ状態の確認から各種操作までを、ひとつのローカルUIに集約。</h1>
+          <p class="eyebrow">Slay the Spire 2向け Windows デスクトップツール</p>
+          <h1>状態確認から各種操作まで、1つのデスクトップツールでまとめて扱えます。</h1>
           <p class="lede">
-            STS2 Managed Controls は、単体プレイの検証、mod 開発、デバッグ、戦闘状態の素早い試行錯誤を
-            行うためのローカル制御パネルです。OCR だけに頼らず managed state を確認し、そのまま
-            ゴールド、ブロック、エナジー、パワー、カード、レリック操作へ進めます。
+            STS2 Managed Controls は、Slay the Spire 2 を単体プレイで検証したい人向けのローカルツールです。
+            ゴールドやブロック、エナジーの調整、パワー付与、カード追加、実行中の状態確認などを、
+            専用のデスクトップUIからまとめて行えます。ビルドの試し打ち、mod の挙動確認、戦闘状況の再現を
+            短時間で回したいときに向いています。
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="purchase.html">購入へ進む</a>
             <a class="button button-secondary" href="#proof">デモを見る</a>
-            <a class="button button-ghost" href="activation.html">Activation Guide</a>
+            <a class="button button-ghost" href="activation.html">有効化ガイド</a>
           </div>
           <ul class="hero-points">
             <li>買い切り: <strong>US$6.99</strong></li>
-            <li>購入前に 30 分のローカルトライアルあり</li>
-            <li>決済後、Install ID に紐づく activation key をメールで受け取り</li>
+            <li>購入前に30分の無料トライアルあり</li>
+            <li>ローカル単体プレイ用途向け</li>
           </ul>
         </div>
 
         <aside class="hero-panel">
           <div class="hero-panel-card">
             <div class="status-row">
-              <span class="status-pill">Stable Surface</span>
-              <span class="status-text">Desktop UI + probe + bridge workflow</span>
+              <span class="status-pill">現行ビルド</span>
+              <span class="status-text">デスクトップUI + 状態確認 + 各種操作</span>
             </div>
             <img src="release/gui.png" alt="STS2 Managed Controls のデスクトップUI">
             <div class="stat-grid">
               <article>
-                <span>ライブ確認</span>
-                <strong>Floor, HP, block, gold, energy</strong>
+                <span>確認できる情報</span>
+                <strong>HP、ブロック、ゴールド、エナジー、階層、アセンション</strong>
               </article>
               <article>
-                <span>Bridge 操作</span>
-                <strong>Powers, hand cards, relic flow</strong>
+                <span>できること</span>
+                <strong>リソース調整、パワー付与、カード追加、検証用の状態作成</strong>
               </article>
               <article>
-                <span>利用前提</span>
-                <strong>ローカル単体プレイのみ</strong>
+                <span>主な用途</span>
+                <strong>ビルド検証、mod テスト、単体プレイの試行錯誤</strong>
               </article>
             </div>
           </div>
@@ -96,48 +97,47 @@
       </section>
 
       <section class="pulse-strip" aria-label="Product highlights">
-        <div>managed state のライブ確認</div>
-        <div>デスクトップ control panel</div>
-        <div>bridge ベースの power / card 操作</div>
-        <div>検索可能な card / power / relic catalog</div>
-        <div>単体プレイの sandbox workflow</div>
+        <div>ゲーム状態をリアルタイムで確認</div>
+        <div>専用のデスクトップUIで操作</div>
+        <div>リソースやパワーを素早く調整</div>
+        <div>カード・パワー・レリックを検索</div>
+        <div>単体プレイの検証を高速化</div>
       </section>
 
       <section class="section" id="proof">
         <div class="section-heading">
           <p class="eyebrow">デモ</p>
-          <h2>リポジトリ説明ではなく、実際の動作を見せるページです。</h2>
+          <h2>実際の操作画面を動画で確認できます。</h2>
           <p>
-            Lemon Squeezy 審査で必要になる「何ができるか」「どう見えるか」「どう購入・有効化するか」を
-            そのまま確認できるように構成しています。下の録画はローカル環境での実動作キャプチャです。
+            現在のビルドをそのまま録画した動画です。UI の雰囲気、状態確認の流れ、各種操作のイメージを
+            購入前に確認できます。
           </p>
         </div>
 
         <div class="proof-grid">
           <article class="proof-card media-card proof-video-card">
             <h3>メインデモ</h3>
-            <p>現行 UI とランタイム制御フローを短くまとめた動画です。</p>
+            <p>現在のビルドで、画面構成や基本的な操作の流れをまとめて見られる動画です。</p>
             <video controls preload="metadata" poster="release/thumb-walkthrough.jpg">
               <source src="release/Slay%20the%20Spire%202%20-%202026-04-05%2018-24-09.mp4" type="video/mp4">
             </video>
           </article>
           <article class="proof-card">
-            <h3>現在の公開範囲</h3>
+            <h3>このツールでできること</h3>
             <ul class="checklist">
-              <li>Managed control UI</li>
-              <li>Probe-managed による live state readout</li>
-              <li>Gold / block / energy control</li>
-              <li>Bridge 経由の power apply</li>
-              <li>Bridge add-card to current hand</li>
-              <li>検索可能な card / power / relic catalog</li>
+              <li>HP、ブロック、ゴールド、エナジー、階層、アセンションを確認</li>
+              <li>ゴールドやエナジーを調整して検証用の状況を素早く作成</li>
+              <li>パワー付与やカード追加でビルドや戦闘状況を試す</li>
+              <li>カード、パワー、レリックを検索してから操作</li>
+              <li>ビルド検証や mod テストの準備時間を短縮</li>
             </ul>
           </article>
         </div>
 
         <div class="video-grid">
           <article class="video-card">
-            <h3>補助デモ</h3>
-            <p>別セッションでの実演キャプチャです。メイン動画の補足として残しています。</p>
+            <h3>別セッションのデモ</h3>
+            <p>別のランで撮った補助動画です。実際の使用感をもう少し見たい人向けに置いています。</p>
             <video controls preload="metadata" poster="release/thumb-live-demo.jpg">
               <source src="release/Slay%20the%20Spire%202%20-%202026-04-03%2021-21-07.mp4" type="video/mp4">
             </video>
@@ -147,87 +147,87 @@
 
       <section class="section" id="features">
         <div class="section-heading">
-          <p class="eyebrow">機能</p>
-          <h2>単体プレイの検証ループを短くするための機能群です。</h2>
+          <p class="eyebrow">何ができるか</p>
+          <h2>面倒な準備を減らし、検証や試行錯誤に時間を使えます。</h2>
         </div>
 
         <div class="feature-grid">
           <article class="feature-card">
-            <h3>Live State Probe</h3>
-            <p>OCR のみには依存せず、floor, ascension, HP, block, gold, energy を managed snapshot から確認します。</p>
+            <h3>ゲーム状態をすぐ確認</h3>
+            <p>現在の階層、アセンション、HP、ブロック、ゴールド、エナジーを実行中のまま確認できます。</p>
           </article>
           <article class="feature-card">
-            <h3>Runtime Actions</h3>
-            <p>Gold の直接変更、block / energy の維持、bridge 経由の power apply を行えます。</p>
+            <h3>リソースを調整</h3>
+            <p>ゴールドを直接変更したり、ブロックやエナジーを維持したりして、狙った検証状況を作れます。</p>
           </article>
           <article class="feature-card">
-            <h3>Catalog Search</h3>
-            <p><code>sts2.dll</code> から取得した cards / powers / relics を検索してから操作できます。</p>
+            <h3>パワーやカードを試す</h3>
+            <p>パワー付与やカード追加で、ビルドや相互作用を手早く試せます。</p>
           </article>
           <article class="feature-card">
-            <h3>Desktop UI</h3>
-            <p>CLI の反復入力や in-game overlay ではなく、独立したローカルウィンドウで操作します。</p>
+            <h3>検索してから操作</h3>
+            <p>カード、パワー、レリックを一覧から検索して、そのまま操作へつなげられます。</p>
           </article>
           <article class="feature-card">
-            <h3>Fast Test Loops</h3>
-            <p>combat-start auto powers などを使って、検証・調整・デバッグの試行回数を増やせます。</p>
+            <h3>検証を速く回す</h3>
+            <p>毎回同じ手順をやり直さずに済むので、ビルド確認や mod テストを短い周期で回せます。</p>
           </article>
           <article class="feature-card">
-            <h3>Experimental Paths</h3>
-            <p>Deck replace, relic obtain, map jump, dynamic-var tuning は搭載済みですが experimental 扱いです。</p>
+            <h3>デスクトップUIで完結</h3>
+            <p>Windows 上の独立したローカルアプリとして動作し、専用の操作画面から扱えます。</p>
           </article>
         </div>
       </section>
 
       <section class="section split-section">
         <div class="split-card">
-          <p class="eyebrow">想定ユーザー</p>
-          <h2>こういう用途向けです</h2>
+          <p class="eyebrow">こんな人向け</p>
+          <h2>主な利用シーン</h2>
           <ul class="checklist">
-            <li>単体プレイの sandbox 利用</li>
-            <li>mod 作者の runtime interaction 検証</li>
-            <li>テスターやバランス調整用途</li>
-            <li>OCR 以外の live state inspection を使いたい人</li>
+            <li>単体プレイでビルドや挙動を検証したい人</li>
+            <li>mod を作っていて効果確認を何度も回したい人</li>
+            <li>特定の戦闘状況を素早く再現したい人</li>
+            <li>OCR 以外の方法でも状態を確認したい人</li>
           </ul>
         </div>
         <div class="split-card split-card-warning">
-          <p class="eyebrow">注意点</p>
-          <h2>事前に理解しておくこと</h2>
+          <p class="eyebrow">購入前の注意</p>
+          <h2>事前に知っておいてほしいこと</h2>
           <ul class="checklist">
-            <li>ローカル単体プレイ用途のみ</li>
-            <li>必要ならセーブデータを事前バックアップ</li>
-            <li>experimental bridge action により状態が崩れる可能性あり</li>
-            <li>ゲームアップデートで reflection-based call が壊れる可能性あり</li>
+            <li>ローカル単体プレイ用途のみを想定しています</li>
+            <li>気になる場合はセーブデータを事前にバックアップしてください</li>
+            <li>一部の高度な機能は実験的です</li>
+            <li>ゲームのアップデートで互換性調整が必要になることがあります</li>
           </ul>
         </div>
       </section>
 
       <section class="section" id="activation">
         <div class="section-heading">
-          <p class="eyebrow">導入フロー</p>
-          <h2>まずは短い trial、その後 local key unlock。</h2>
+          <p class="eyebrow">導入方法</p>
+          <h2>まずは30分試し、気に入ればそのまま有効化できます。</h2>
         </div>
 
         <div class="timeline">
           <article>
             <span>01</span>
             <h3>ツールを起動</h3>
-            <p>各 install は 30 分のローカルトライアルから始まります。</p>
+            <p>インストール後は30分の無料トライアルから始まるので、購入前に操作感を確認できます。</p>
           </article>
           <article>
             <span>02</span>
-            <h3>Install ID をコピー</h3>
-            <p>Desktop UI の <code>License -&gt; License Status...</code> から確認します。</p>
+            <h3>Install ID を確認</h3>
+            <p><code>License -&gt; License Status...</code> から Install ID をコピーします。</p>
           </article>
           <article>
             <span>03</span>
             <h3>購入手続きへ進む</h3>
-            <p>Purchase page で Install ID を入力し、Lemon Squeezy checkout に引き渡します。</p>
+            <p>購入ページに Install ID を入力し、そのまま Lemon Squeezy で決済します。</p>
           </article>
           <article>
             <span>04</span>
-            <h3>Activation key を貼り付け</h3>
-            <p>決済処理後、メールで key を受け取り、UI または CLI に入力します。</p>
+            <h3>ライセンスキーを入力</h3>
+            <p>決済処理後にメールで届くライセンスキーを、UI または CLI に入力して有効化します。</p>
           </article>
         </div>
       </section>
@@ -235,45 +235,45 @@
       <section class="section pricing-section">
         <div class="pricing-card">
           <p class="eyebrow">価格</p>
-          <h2>Standard license</h2>
+          <h2>買い切りライセンス</h2>
           <div class="price-line">
             <strong>US$6.99</strong>
-            <span>one-time purchase</span>
+            <span>買い切り</span>
           </div>
           <ul class="checklist">
             <li>継続課金なし</li>
-            <li>購入前に 30 分の trial あり</li>
-            <li>Activation 後は対象 install ID で無期限利用</li>
-            <li>Activation key は決済処理後にメール送付</li>
+            <li>購入前に30分の無料トライアルあり</li>
+            <li>決済処理後にライセンスキーをメールで送付</li>
+            <li>Install ID を使った有効化フローに対応</li>
           </ul>
           <div class="hero-actions">
             <a class="button button-primary" href="purchase.html">購入へ進む</a>
-            <a class="button button-secondary" href="activation.html">Activation Guide を読む</a>
+            <a class="button button-secondary" href="activation.html">有効化ガイドを見る</a>
           </div>
         </div>
       </section>
 
       <section class="section" id="faq">
         <div class="section-heading">
-          <p class="eyebrow">FAQ</p>
-          <h2>先に知っておきたい点</h2>
+          <p class="eyebrow">購入前によくある質問</p>
+          <h2>先に知っておきたいポイントをまとめています。</h2>
         </div>
         <div class="faq-grid">
           <article class="faq-card">
-            <h3>サブスクですか？</h3>
-            <p>いいえ。現在の公開 checkout は <strong>US$6.99 の買い切り</strong>です。</p>
+            <h3>サブスクリプションですか？</h3>
+            <p>いいえ。現在の販売価格は <strong>US$6.99 の買い切り</strong>です。</p>
           </article>
           <article class="faq-card">
-            <h3>購入すると何が届きますか？</h3>
-            <p>STS2 Managed Controls の activation key が届きます。key は購入時の install ID に紐づきます。</p>
+            <h3>購入すると何が手に入りますか？</h3>
+            <p>STS2 Managed Controls を有効化するライセンスキーが届きます。キーは Install ID を使った手順で有効化します。</p>
           </article>
           <article class="faq-card">
-            <h3>マルチプレイ用途ですか？</h3>
-            <p>いいえ。単体プレイの sandbox、検証、mod 開発用途を前提にしています。</p>
+            <h3>導入は難しいですか？</h3>
+            <p>Install ID をコピーして購入ページで入力し、届いたキーを貼り付けるだけなので、導入手順自体はシンプルです。</p>
           </article>
           <article class="faq-card">
-            <h3>サポート先は？</h3>
-            <p><a href="mailto:support@auth.cilabworks.com">support@auth.cilabworks.com</a> です。</p>
+            <h3>通常のセーブに影響しますか？</h3>
+            <p>実行中の状態を変更するツールなので、検証用・試行錯誤用として使うのがおすすめです。気になる場合は事前にバックアップしてください。</p>
           </article>
         </div>
       </section>
@@ -282,7 +282,7 @@
     <footer class="footer">
       <div class="footer-copy">
         <strong>STS2 Managed Controls</strong>
-        <p>Slay the Spire 2 向けデスクトップ runtime control panel。ローカル単体プレイ用途のみ。</p>
+        <p>Slay the Spire 2 向けデスクトップツール。ローカル単体プレイ用途のみ。</p>
       </div>
       <nav class="footer-links" aria-label="Footer">
         <a href="terms.html">Terms of Service</a>
